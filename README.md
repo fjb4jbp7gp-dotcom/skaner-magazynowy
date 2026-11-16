@@ -15,6 +15,10 @@ GS1), LOT i EXP. Tworzy listę zeskanowanych opakowań, porównuje ją z pack li
 | `packlista_przyklad.csv` | przykład formatu pack listy |
 
 ## Jak uruchomić na iPhonie
+**Adres aplikacji (GitHub Pages): https://fjb4jbp7gp-dotcom.github.io/skaner-magazynowy/** – otworzyć w Safari,
+Udostępnij → „Dodaj do ekranu początkowego”. Repozytorium: https://github.com/fjb4jbp7gp-dotcom/skaner-magazynowy
+(aktualizacja = `git push`, Pages publikuje w ok. minutę).
+
 Kamera na żywo działa tylko pod **https://** (wymóg Safari). Opcje:
 1. **Hosting statyczny** (GitHub Pages, Netlify, Cloudflare Pages, własny serwer): wgrać cały folder. Otworzyć adres
    w Safari → Udostępnij → „Dodaj do ekranu początkowego”. Po pierwszym otwarciu działa offline.
