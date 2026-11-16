@@ -17,6 +17,8 @@ OUT = Path(__file__).with_name("products.js")
 # GTIN jednostkowe Curea P1 (wykaz refundowanych wyrobów medycznych MZ, poz. 287-291, 2026-04-01)
 CUREA_UNIT_GTIN = {"100100": "4260223630231", "100200": "4260223630248", "100300": "4260223630262",
                    "150150": "4260223630651", "200200": "4260223630255"}
+# GTIN pudełek Curea potwierdzone z etykiet (DataMatrix GS1 + EAN-13 na naklejce)
+CUREA_BOX_GTIN = {"P1-100100-10": "4260223630026"}
 NURSICARE_PL_EAN = "2735471314001"   # EAN-13 z pliku Broszury, IFU/EAN-13Nursicare.svg
 
 def liczba(v):
@@ -138,7 +140,7 @@ for name, szt in subiekt:
         add(dict(sku=code or name, marka="Curea", nazwa=name, nazwa_en=(curea_catalog.get(code, {}).get("produkt", "") + " " + curea_catalog.get(code, {}).get("rozmiar", "")).strip(),
                  ref=code, poziom="opakowanie" if szt > 1 else "sztuka", szt_w_opak=szt, sprzedawany=True,
                  wym_cm=curea_catalog.get(code, {}).get("rozmiar", ""),
-                 kody={"opakowanie": [], "sztuka": [unit] if unit else [], "karton": []}))
+                 kody={"opakowanie": [CUREA_BOX_GTIN[code]] if code in CUREA_BOX_GTIN else [], "sztuka": [unit] if unit else [], "karton": []}))
     elif lname.startswith("nursicare"):
         rec = ferris.get("400-EN")
         box = [NURSICARE_PL_EAN] if valid_gtin(NURSICARE_PL_EAN) else []

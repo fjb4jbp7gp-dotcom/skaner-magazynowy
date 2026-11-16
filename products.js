@@ -171,7 +171,9 @@ window.PRODUKTY = {
    "sprzedawany": true,
    "wym_cm": "10 x 10 cm",
    "kody": {
-    "opakowanie": [],
+    "opakowanie": [
+     "4260223630026"
+    ],
     "sztuka": [
      "4260223630231"
     ],
@@ -3997,6 +3999,12 @@ window.PRODUKTY = {
    {
     "sku": "7606",
     "poziom": "sztuka"
+   }
+  ],
+  "4260223630026": [
+   {
+    "sku": "P1-100100-10",
+    "poziom": "opakowanie"
    }
   ],
   "4260223630231": [

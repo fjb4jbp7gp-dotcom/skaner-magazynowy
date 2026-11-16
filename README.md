@@ -37,6 +37,11 @@ Kamera czyta **wszystkie kody z kadru naraz** (zielona ramka = kod produktu, ż�
 3. **Następne opakowanie.** Zapisany kod jest blokowany, dopóki widać go w kadrze – odsuń telefon (ok. 1 s) i najedź
    na następną etykietę, albo dotknij „+1 takie samo”.
 
+**Curea** (naklejka na pudełku): mały DataMatrix GS1 `(01)GTIN (17)EXP (10)LOT` + EAN-13 z tym samym GTIN. Kody
+z tym samym GTIN są łączone w jedną pozycję, więc wystarczy jedna klatka z naklejką. Duży biały kod QR na pudełku
+to adres strony producenta – jest pomijany. EXP z pack listy porównuje się po roku i miesiącu (`2031-08` pasuje
+do `2031-08-01` z kodu).
+
 **Karton zbiorczy** (kod `(01)3…`, napis CASE): zapisuje się jako `poziom=karton` z ilością opakowań z arkusza Ferris
 (np. REF 5077: karton = 2 opak. = 30 szt.). Pack lista i sumy liczą opakowania.
 
@@ -69,7 +74,8 @@ Separator `;`, UTF-8 z BOM (Excel PL), daty ISO `RRRR-MM-DD`. `poziom` = `opakow
 * PolyMem/Nursicare: REF, nazwy Subiekta, UPC i GTIN-14 pudełka/saszetki/kartonu z arkusza Ferris
   `R-071A,R36 FMC Product Master Data Sheet.xlsx` (108 REF). Literówka Subiekta „2686” zmapowana na Ferris 2868.
 * Curea: kody artykułów z `Cennik 2026.xlsx` (P1, C1DUO, P2, C2), GTIN jednostkowe P1 10x10/10x20/10x30/15x15/20x20
-  z wykazu refundacyjnego MZ (prefiks GS1 Curea: 426022363). **GTIN pudełek Curea nie są znane** – EUDAMED nie
+  z wykazu refundacyjnego MZ (prefiks GS1 Curea: 426022363). Z etykiety potwierdzony GTIN pudełka
+  P1-100100-10: 4260223630026. **Pozostałe GTIN pudełek Curea nie są znane** – EUDAMED nie
   udostępnia filtra po producencie i ograniczył zapytania; kody uczą się przy pierwszym skanie.
 * Nursicare: EAN-13 2735471314001 (plik `EAN-13Nursicare.svg`) + kody Ferris wariantów językowych 400-xx.
 * `sprzedawany: true` = pozycja z indeksu Subiekta; reszta to katalog (do wyboru po zeskanowaniu nowego produktu).

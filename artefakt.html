@@ -356,7 +356,7 @@ function jestProduktem(p){
 }
 function expZPamieci(){ if(pending && pending.lot && !pending.exp){ const e = ST.lotExp[kluczLot(pending.sku, pending.lot)]; if(e){ pending.exp = e; pending.expZPamieci = true; } } }
 function zastosujLotExp(p, zrodlo){ // kod LOT / EXP dla rozpoczętej pozycji; true = coś uzupełniono
-  if(!pending || p.raw===pending.raw) return false;
+  if(!pending || p.raw===pending.raw || toLink(p.raw)) return false;
   const k = krok(); let zm = false;
   if(p.gs1){ if(p.lot && !pending.lot){ pending.lot = p.lot; zm = true; } if(p.exp && !pending.exp){ pending.exp = p.exp; zm = true; } }
   else {
@@ -384,27 +384,47 @@ function onKod(raw, zrodlo, format, gs1){
   }
   nieznany(p, zrodlo);
 }
-// Kamera: wszystkie kody z jednej klatki naraz (produkt + LOT z tej samej etykiety)
+// Kamera: wszystkie kody z jednej klatki naraz. Kody z tym samym GTIN (np. Curea: EAN-13 + DataMatrix GS1) są łączone
+// w jedną pozycję, więc LOT i EXP z DataMatrix trafiają do produktu rozpoznanego po EAN. Osobny kod LOT (PolyMem) też.
+const kluczBlok = p => p.gtin ? 'g:' + norm(p.gtin) : 'r:' + p.raw;
+const toLink = raw => /^(https?:\/\/|www\.)/i.test(String(raw||'').trim());
 function zKlatki(wyn, w, h, foto){
   const t = Date.now();
-  wyn.forEach(r => { ostatnioWidziane[r.raw] = t; });
-  for(const k in blok){ if(t - (ostatnioWidziane[k]||0) > 1200) delete blok[k]; }
-  if(!wyn.length){ ustawWidze('', []); return; }
+  wyn = wyn.filter(r => !toLink(r.raw));          // kody QR z adresem strony (marketing) pomijamy
   const sr = r => { if(!r.pos) return [w/2, h/2]; const P = [r.pos.topLeft, r.pos.topRight, r.pos.bottomRight, r.pos.bottomLeft]; return [P.reduce((a,q)=>a+q.x,0)/4, P.reduce((a,q)=>a+q.y,0)/4]; };
   const an = wyn.map(r => { const p = parseGS1(r.raw, r.format, r.gs1); const c = sr(r); return {r, p, c, d: Math.hypot(c[0]-w/2, c[1]-h/2), prod: jestProduktem(p)}; }).sort((a,b) => a.d-b.d);
-  const prod = an.find(a => a.prod); const inne = an.filter(a => !a.prod);
-  if(prod) inne.sort((a,b) => Math.hypot(a.c[0]-prod.c[0], a.c[1]-prod.c[1]) - Math.hypot(b.c[0]-prod.c[0], b.c[1]-prod.c[1]));
+  an.forEach(a => { if(a.prod) ostatnioWidziane[kluczBlok(a.p)] = t; });
+  for(const k in blok){ if(t - (ostatnioWidziane[k]||0) > 1200) delete blok[k]; }
+  if(!an.length){ ustawWidze('', []); return; }
+  const pierwszy = an.find(a => a.prod);
+  // wszystkie kody tego samego produktu (ten sam GTIN) → jedna złączona informacja
+  const grupa = pierwszy ? an.filter(a => a.prod && kluczBlok(a.p)===kluczBlok(pierwszy.p)) : [];
+  const inne = an.filter(a => !a.prod);
+  let pm = null;
+  if(pierwszy){
+    const gs = grupa.find(a => a.p.gs1) || pierwszy;
+    pm = Object.assign({}, gs.p);
+    grupa.forEach(a => { if(!pm.lot && a.p.lot) pm.lot = a.p.lot; if(!pm.exp && a.p.exp) pm.exp = a.p.exp; if(!pm.kod_artykulu && a.p.kod_artykulu) pm.kod_artykulu = a.p.kod_artykulu; });
+    inne.sort((a,b) => Math.hypot(a.c[0]-pierwszy.c[0], a.c[1]-pierwszy.c[1]) - Math.hypot(b.c[0]-pierwszy.c[0], b.c[1]-pierwszy.c[1]));
+  }
   ustawWidze('', an);
   if(document.getElementById('modal')) return;
+  const zr = foto ? 'foto' : 'skan';
   if(pending){
-    if(prod && prod.r.raw!==pending.raw && !inne.length) ustawWidze('Inny produkt w kadrze. Najpierw dokończ lub anuluj bieżącą pozycję.', an);
-    for(const a of inne){ if(!pending || zastosujLotExp(a.p, foto?'foto':'skan')) break; }
+    // kody GS1 tego samego produktu (ten sam GTIN) uzupełniają LOT/EXP rozpoczętej pozycji
+    const tenSam = an.filter(a => a.prod && a.p.gs1 && (a.p.lot || a.p.exp) && pending.gtin && norm(a.p.gtin)===norm(pending.gtin));
+    for(const a of tenSam){ if(!pending) return; zastosujLotExp(a.p, zr); }
+    if(!pending) return;
+    for(const a of inne){ if(!pending || zastosujLotExp(a.p, zr)) break; }
+    if(pending && pm && pending.gtin && norm(pm.gtin||'')!==norm(pending.gtin) && pm.gtin) ustawWidze('Inny produkt w kadrze. Najpierw dokończ lub anuluj bieżącą pozycję.', an);
     return;
   }
-  if(prod){
-    if(blok[prod.r.raw] && !foto){ ustawWidze('Zapisane. Odsuń telefon, żeby policzyć następne opakowanie, albo dotknij „+1 takie samo”.', an); return; }
-    produktZeSkanu(prod.p, foto?'foto':'skan');
-    for(const a of inne){ if(!pending || krok()!=='LOT') break; zastosujLotExp(a.p, foto?'foto':'skan'); }
+  if(pm){
+    const kb = kluczBlok(pm);
+    const lotKadru = (pm.lot || (inne[0] && inne[0].r.raw.length<=30 ? inne[0].r.raw : '')).toUpperCase();
+    if(!foto && kb in blok && (!lotKadru || lotKadru===blok[kb])){ ustawWidze('Zapisane. Odsuń telefon, żeby policzyć następne opakowanie, albo dotknij „+1 takie samo”.', an); return; }
+    produktZeSkanu(pm, zr);
+    for(const a of inne){ if(!pending || krok()!=='LOT') break; zastosujLotExp(a.p, zr); }
     return;
   }
   const a0 = inne[0];
@@ -438,7 +458,7 @@ function zatwierdz(zrodlo){
                ilosc, lot:(pending.lot||'').toUpperCase(), exp:pending.exp||'', gtin:pending.gtin||'', zrodlo:zrodlo||pending.zrodlo||'skan', kod_surowy:pending.raw||''};
   s.skany.push(rec);
   if(rec.lot && rec.exp) ST.lotExp[kluczLot(rec.sku, rec.lot)] = rec.exp;
-  if(pending.raw){ blok[pending.raw] = true; ostatnioWidziane[pending.raw] = Date.now(); }
+  { const kb = kluczBlok(pending); blok[kb] = (pending.lot||'').toUpperCase(); ostatnioWidziane[kb] = Date.now(); }   // ta sama etykieta w kadrze nie liczy się drugi raz
   pending = null; save();
   const st = sprawdzPack(rec);
   if(st==='za_duzo') badFlash('ZA DUŻO: '+prod.nazwa); else okFlash('Zapisano: '+prod.nazwa+(ilosc>1?' (karton = '+ilosc+' opak.)':''));
@@ -449,7 +469,8 @@ function sprawdzPack(rec){ // status pozycji pack listy po dodaniu skanu
   const linia = s.pack.find(l => pasuje(l, rec)); if(!linia) return 'poza';
   const ile = licz(linia); return ile>linia.ilosc ? 'za_duzo' : (ile===linia.ilosc ? 'ok' : 'czesc');
 }
-const pasuje = (l, r) => l.sku===r.sku && (!l.lot || l.lot.toUpperCase()===(r.lot||'').toUpperCase()) && (!l.exp || l.exp===r.exp);
+// EXP porównujemy po roku i miesiącu: nadruk/pack lista podają „2031-08”, kod GS1 pełną datę „2031-08-01”
+const pasuje = (l, r) => l.sku===r.sku && (!l.lot || l.lot.toUpperCase()===(r.lot||'').toUpperCase()) && (!l.exp || String(l.exp).slice(0,7)===String(r.exp||'').slice(0,7));
 const licz = l => S().skany.filter(r => pasuje(l, r)).reduce((a,r)=>a+r.ilosc,0);
 const sztuk = r => r.poziom==='sztuka' ? r.ilosc : r.ilosc*(r.szt_w_opak||1);
 
