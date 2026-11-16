@@ -113,7 +113,7 @@ kbd{font-family:var(--mono);background:var(--accent-soft);border-radius:4px;padd
 
 <div id="app">
 <header>
-  <h1>Skaner SP</h1>
+  <h1>Skaner SP <small id="wer" style="font-weight:400;opacity:.75"></small></h1>
   <button class="sesja" id="btnSesja" title="Sesja (zamówienie)">—</button>
 </header>
 <main>
@@ -125,7 +125,7 @@ kbd{font-family:var(--mono);background:var(--accent-soft);border-radius:4px;padd
     <canvas id="nakladka"></canvas>
     <div class="frame"></div>
     <div class="flash" id="flash"></div>
-    <div class="tools"><button id="btnZoom" hidden>Zoom 2×</button><button id="btnLatarka" hidden>Latarka</button><button id="btnStopCam" hidden>Stop</button></div>
+    <div class="tools"><button id="btnKlatka" hidden>Klatka</button><button id="btnZoom" hidden>Zoom 2×</button><button id="btnLatarka" hidden>Latarka</button><button id="btnStopCam" hidden>Stop</button></div>
     <div class="off" id="camOff">
       <div id="camInfo">Kamera wyłączona</div>
       <button class="btn primary" id="btnStartCam">Włącz kamerę</button>
@@ -134,6 +134,7 @@ kbd{font-family:var(--mono);background:var(--accent-soft);border-radius:4px;padd
   </div>
   <div class="diag mono" id="diag"></div>
   <div class="podp" id="podp" hidden></div>
+  <div class="podp" id="nowaWersja" hidden><span>Jest nowsza wersja aplikacji.</span> <button class="btn small" id="btnOdswiez">Odśwież</button></div>
   <div id="alertPack" hidden></div>
   <div class="card stan" id="stan"></div>
   <div class="row" id="stanAkcje"></div>
@@ -217,6 +218,7 @@ kbd{font-family:var(--mono);background:var(--accent-soft);border-radius:4px;padd
 <script src="zxing-wasm-reader.js"></script>
 <script>
 /* ======================= DANE ======================= */
+const WERSJA = '4';   // ta sama wartość co w pliku wersja.txt
 const DB = window.PRODUKTY || {produkty:[], indeks_kodow:{}};
 const PROD = {}; DB.produkty.forEach(p => PROD[p.sku] = p);
 const KEY = 'skaner-sp.v1';
@@ -389,7 +391,7 @@ function onKod(raw, zrodlo, format, gs1){
 const kluczBlok = p => p.gtin ? 'g:' + norm(p.gtin) : 'r:' + p.raw;
 const toLink = raw => /^(https?:\/\/|www\.)/i.test(String(raw||'').trim());
 function zKlatki(wyn, w, h, foto){
-  const t = Date.now();
+  const t = Date.now(); if(!foto){ ramW = w; ramH = h; }
   wyn = wyn.filter(r => !toLink(r.raw));          // kody QR z adresem strony (marketing) pomijamy
   const sr = r => { if(!r.pos) return [w/2, h/2]; const P = [r.pos.topLeft, r.pos.topRight, r.pos.bottomRight, r.pos.bottomLeft]; return [P.reduce((a,q)=>a+q.x,0)/4, P.reduce((a,q)=>a+q.y,0)/4]; };
   const an = wyn.map(r => { const p = parseGS1(r.raw, r.format, r.gs1); const c = sr(r); return {r, p, c, d: Math.hypot(c[0]-w/2, c[1]-h/2), prod: jestProduktem(p)}; }).sort((a,b) => a.d-b.d);
@@ -417,6 +419,7 @@ function zKlatki(wyn, w, h, foto){
     if(!pending) return;
     for(const a of inne){ if(!pending || zastosujLotExp(a.p, zr)) break; }
     if(pending && pm && pending.gtin && norm(pm.gtin||'')!==norm(pending.gtin) && pm.gtin) ustawWidze('Inny produkt w kadrze. Najpierw dokończ lub anuluj bieżącą pozycję.', an);
+    else if(pending && krok()==='LOT' && PROD[pending.sku].marka==='Curea') ustawWidze('Produkt rozpoznany. Teraz mały kwadratowy kod na białej naklejce (obok napisu (01)…) – w nim jest LOT i EXP. Trzymaj telefon ok. 20 cm od pudełka.', an);
     return;
   }
   if(pm){
@@ -641,7 +644,7 @@ function renderWiecej(){
   const al = Object.entries(ST.aliasy);
   $('aliasyLista').innerHTML = al.length ? al.map(([k,a]) => `<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)"><span class="grow"><span class="mono">${esc(a.kod||k)}</span> → ${esc(PROD[a.sku]?PROD[a.sku].nazwa:a.sku)}</span><button class="btn small" data-k="${esc(k)}">Usuń</button></div>`).join('') : '<div class="muted">Brak. Gdy zeskanujesz nieznany kod i wybierzesz produkt, kod zostanie tu zapamiętany.</div>';
   $('aliasyLista').querySelectorAll('button').forEach(b => b.onclick = () => { delete ST.aliasy[b.dataset.k]; save(); render(); });
-  $('info').innerHTML = `Baza produktów: ${DB.produkty.length} pozycji (${DB.produkty.filter(p=>p.sprzedawany).length} sprzedawanych), ${Object.keys(DB.indeks_kodow).length} kodów, wygenerowana ${esc(DB.wygenerowano||'?')}.<br>Tryb: ${trybOpis}, silnik kodów: ${silnik}, zapamiętane EXP dla ${Object.keys(ST.lotExp).length} LOT-ów. Dane są zapisane w tej przeglądarce (telefonie) – eksportuj CSV po każdej sesji.`;
+  $('info').innerHTML = `Baza produktów: ${DB.produkty.length} pozycji (${DB.produkty.filter(p=>p.sprzedawany).length} sprzedawanych), ${Object.keys(DB.indeks_kodow).length} kodów, wygenerowana ${esc(DB.wygenerowano||'?')}.<br>Wersja ${WERSJA}. Tryb: ${trybOpis}, silnik kodów: ${silnik}, zapamiętane EXP dla ${Object.keys(ST.lotExp).length} LOT-ów. Dane są zapisane w tej przeglądarce (telefonie) – eksportuj CSV po każdej sesji.`;
 }
 
 /* ======================= PACK LISTA: parsowanie ======================= */
@@ -730,10 +733,10 @@ const kan = document.createElement('canvas'); const kctx = kan.getContext('2d', 
 async function startCam(){
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ trybFoto('Kamera na żywo niedostępna w tym widoku.'); return; }
   try{
-    stream = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1080}}});
+    stream = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:3840}, height:{ideal:2160}}});
     const v = $('video'); v.srcObject = stream; try{ await v.play(); }catch(e){}
     track = stream.getVideoTracks()[0]; camOn = true; klatki = 0;
-    $('camOff').hidden = true; $('btnStopCam').hidden = false;
+    $('camOff').hidden = true; $('btnStopCam').hidden = false; $('btnKlatka').hidden = false;
     try{ const caps = track.getCapabilities ? track.getCapabilities() : {}; if(caps.torch) $('btnLatarka').hidden = false; if(caps.zoom && caps.zoom.max >= 2) $('btnZoom').hidden = false; if(caps.focusMode && caps.focusMode.includes('continuous')) track.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{}); }catch(e){}
     try{ if(navigator.wakeLock) navigator.wakeLock.request('screen').catch(()=>{}); }catch(e){}
     petla();
@@ -741,23 +744,56 @@ async function startCam(){
     camOn = false; trybFoto('Brak dostępu do kamery ('+(e && e.name ? e.name : e)+'). W Safari: aA → Ustawienia witryny → Kamera: Zezwól.');
   }
 }
-function stopCam(){ camOn = false; clearTimeout(petlaT); try{ stream && stream.getTracks().forEach(t => t.stop()); }catch(e){} stream = null; track = null; try{ $('video').srcObject = null; }catch(e){} $('camOff').hidden = false; $('btnStopCam').hidden = true; $('btnLatarka').hidden = true; $('btnZoom').hidden = true; $('camInfo').textContent = 'Kamera wyłączona'; rysujRamki([], 1, 1); ustawWidze(''); }
+function stopCam(){ camOn = false; clearTimeout(petlaT); try{ stream && stream.getTracks().forEach(t => t.stop()); }catch(e){} stream = null; track = null; try{ $('video').srcObject = null; }catch(e){} $('camOff').hidden = false; $('btnStopCam').hidden = true; $('btnKlatka').hidden = true; $('btnLatarka').hidden = true; $('btnZoom').hidden = true; $('camInfo').textContent = 'Kamera wyłączona'; rysujRamki([], 1, 1); ustawWidze(''); }
 function trybFoto(msg){ $('camInfo').textContent = msg + ' Możesz zrobić zdjęcie etykiety.'; $('lblFoto').hidden = false; }
+function obszarWidoczny(v){ // część klatki widoczna na ekranie (wideo wypełnia kadr: object-fit cover)
+  const CW = v.clientWidth || 1, CH = v.clientHeight || 1, vw = v.videoWidth, vh = v.videoHeight;
+  const sk = Math.max(CW/vw, CH/vh); const w = Math.min(vw, CW/sk), h = Math.min(vh, CH/sk);
+  return {x:(vw-w)/2, y:(vh-h)/2, w, h};
+}
+async function dekodujObszar(v, o, skala){ // rysuje widoczny obszar w zadanej skali i dekoduje; pozycje wracają w px obszaru
+  kan.width = Math.max(8, Math.round(o.w*skala)); kan.height = Math.max(8, Math.round(o.h*skala));
+  kctx.imageSmoothingEnabled = true; kctx.imageSmoothingQuality = 'high';
+  kctx.drawImage(v, o.x, o.y, o.w, o.h, 0, 0, kan.width, kan.height);
+  const wyn = await dekoduj(kctx.getImageData(0, 0, kan.width, kan.height));
+  wyn.forEach(r => { if(r.pos){ const q = {}; for(const k of ['topLeft','topRight','bottomRight','bottomLeft']) q[k] = {x:r.pos[k].x/skala, y:r.pos[k].y/skala}; r.pos = q; } });
+  return wyn;
+}
+let msKlatki = 0;
+async function dwaPrzebiegi(v, o){
+  const dl = Math.max(o.w, o.h);
+  const k1 = Math.min(1, 1280/dl);
+  const wyn = await dekodujObszar(v, o, k1);                                     // szybki przebieg: duże kody (etykiety kartonów)
+  const pelny = wyn.some(r => r.gs1 && r.raw.includes('(01)') && r.raw.includes('(10)'));
+  const k2 = Math.min(2, 2200/dl);                                               // dokładny przebieg: małe kody (DataMatrix Curea), do 2× powiększenia
+  if(!pelny && k2 > k1*1.15){ const w2 = await dekodujObszar(v, o, k2); w2.forEach(r => { if(!wyn.some(x => x.raw===r.raw)) wyn.push(r); }); }
+  return wyn;
+}
 async function petla(){
   if(!camOn) return;
   const v = $('video');
   if(v.readyState >= 2 && v.videoWidth && !zajety && widok==='skan' && !document.hidden){
     zajety = true;
     try{
-      const sc = Math.min(1, 1600 / Math.max(v.videoWidth, v.videoHeight));
-      kan.width = Math.round(v.videoWidth*sc); kan.height = Math.round(v.videoHeight*sc);
-      kctx.drawImage(v, 0, 0, kan.width, kan.height);
-      const wyn = await dekoduj(kctx.getImageData(0, 0, kan.width, kan.height));
-      klatki++; zKlatki(wyn, kan.width, kan.height);
+      const t0 = performance.now();
+      const o = obszarWidoczny(v);
+      const wyn = await dwaPrzebiegi(v, o);
+      klatki++; msKlatki = Math.round(performance.now() - t0);
+      zKlatki(wyn, o.w, o.h);
     }catch(e){ ustawWidze('Błąd dekodera: '+(e && e.message ? e.message : e)); }
     zajety = false;
   }
-  petlaT = setTimeout(petla, 50);
+  petlaT = setTimeout(petla, 40);
+}
+async function zapiszKlatke(){ // diagnostyka: dokładnie to, co widzi dekoder (do wysłania, gdy kod się nie czyta)
+  try{
+    const v = $('video'); const o = obszarWidoczny(v); const c = document.createElement('canvas'); c.width = Math.round(o.w); c.height = Math.round(o.h);
+    c.getContext('2d').drawImage(v, o.x, o.y, o.w, o.h, 0, 0, c.width, c.height);
+    const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.92));
+    const f = new File([blob], 'klatka_'+c.width+'x'+c.height+'_'+Date.now()+'.jpg', {type:'image/jpeg'});
+    if(navigator.canShare && navigator.canShare({files:[f]})) await navigator.share({files:[f], title:'Klatka skanera'});
+    else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); }
+  }catch(e){ if(!(e && e.name==='AbortError')) toast('Nie udało się zapisać klatki'); }
 }
 function rysujRamki(an, w, h){ // obrysy rozpoznanych kodów na podglądzie (wideo wypełnia kadr: object-fit cover)
   const c = $('nakladka'); const W = c.clientWidth, H = c.clientHeight; if(!W || !H) return;
@@ -766,12 +802,13 @@ function rysujRamki(an, w, h){ // obrysy rozpoznanych kodów na podglądzie (wid
   const sk = Math.max(W/w, H/h), dx = (W - w*sk)/2, dy = (H - h*sk)/2;
   an.forEach(a => { const p = a.r.pos; if(!p) return; g.beginPath(); [p.topLeft, p.topRight, p.bottomRight, p.bottomLeft].forEach((q,i) => { const x = dx + q.x*sk, y = dy + q.y*sk; if(i) g.lineTo(x,y); else g.moveTo(x,y); }); g.closePath(); g.lineWidth = 3; g.strokeStyle = a.prod ? '#3ddc84' : '#ffd24a'; g.stroke(); g.fillStyle = a.prod ? 'rgba(61,220,132,.18)' : 'rgba(255,210,74,.18)'; g.fill(); });
 }
-let widzeOst = '';
+let widzeOst = '', ramW = 1, ramH = 1;
 function ustawWidze(msg, an, zPrzyciskiem){
   an = an || [];
-  if(camOn) rysujRamki(an, kan.width || 1, kan.height || 1);
+  if(camOn) rysujRamki(an, ramW, ramH);
   const kody = an.map(a => (a.prod ? 'produkt ' : 'kod ') + a.r.raw.slice(0, 26)).join(' · ');
-  const txt = (camOn ? '● skanuję · ' : '') + 'silnik: ' + silnik + (camOn ? ' · klatek: ' + klatki : '') + (kody ? ' · widzę: ' + kody : '');
+  const v = $('video');
+  const txt = 'v' + WERSJA + ' · ' + (camOn ? '● ' + v.videoWidth + '×' + v.videoHeight + ' · ' + msKlatki + ' ms · klatek ' + klatki + ' · ' : '') + silnik + (kody ? ' · widzę: ' + kody : '');
   $('diag').textContent = txt;
   const klucz = (msg||'') + '|' + (zPrzyciskiem ? kodBezProduktu : '');
   if(klucz !== widzeOst){ widzeOst = klucz; const el = $('podp'); el.hidden = !msg; el.innerHTML = msg ? '<span>'+esc(msg)+'</span>' + (zPrzyciskiem ? ' <button class="btn small" id="btnUzyjKodu">To jest kod produktu</button>' : '') : ''; const b = $('btnUzyjKodu'); if(b) b.onclick = () => { const raw = kodBezProduktu; nieznany(parseGS1(raw, '', false), 'skan'); }; }
@@ -812,6 +849,8 @@ function bind(){
   $('btnStartCam').onclick = startCam; $('btnStopCam').onclick = stopCam;
   $('foto').onchange = e => zFoto(e.target.files[0]);
   $('btnZoom').onclick = async () => { try{ const on = !($('btnZoom').dataset.on==='1'); await track.applyConstraints({advanced:[{zoom: on ? 2 : 1}]}); $('btnZoom').dataset.on = on?'1':'0'; $('btnZoom').textContent = on ? 'Zoom 1×' : 'Zoom 2×'; }catch(e){ toast('Zoom niedostępny'); } };
+  $('btnKlatka').onclick = zapiszKlatke;
+  $('btnOdswiez').onclick = () => odswiezDo(String(Date.now()));
   $('btnLatarka').onclick = async () => { try{ const on = !($('btnLatarka').dataset.on==='1'); await track.applyConstraints({advanced:[{torch:on}]}); $('btnLatarka').dataset.on = on?'1':'0'; }catch(e){ toast('Latarka niedostępna'); } };
   const reczny = () => { const v = $('reczny').value.trim(); if(!v) return; $('reczny').value=''; const p = parseGS1(v); if(p.gtin || p.kod_artykulu || krok()!=='PRODUKT') onKod(v, 'recznie'); else { const r = szukaj(v); if(r.length===1) ustawPending(r[0].sku, r[0].poziom, {raw:v}, 'recznie'); else otworzPicker({tytul:'Wybierz produkt', filtr:v, zrodlo:'recznie', parsed:{raw:v}}); } };
   $('btnReczny').onclick = reczny; $('reczny').addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); reczny(); } });
@@ -838,7 +877,20 @@ function bind(){
   document.addEventListener('visibilitychange', () => { if(document.hidden && camOn) stopCam(); });
   document.addEventListener('keydown', e => { if(e.key==='Escape') zamknijModal(); });
 }
-window.SKANER = {parseGS1, parseDate, kandydaci, onKod, zKlatki, dekoduj, jestProduktem, parsujPack, csvSkany, csvPodsum, stan:()=>ST, pending:()=>pending, krok, blok};
+window.SKANER = {parseGS1, parseDate, kandydaci, onKod, zKlatki, dekoduj, dekodujObszar, dwaPrzebiegi, obszarWidoczny, jestProduktem, parsujPack, csvSkany, csvPodsum, stan:()=>ST, pending:()=>pending, krok, blok};
 init(); initDekoder(); bind(); render(); ustawWidze('');
+$('wer').textContent = 'v' + WERSJA;
+async function odswiezDo(w){ try{ const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); }catch(e){} location.replace(location.pathname + '?v=' + encodeURIComponent(w)); }
+async function sprawdzWersje(){ // strona z pamięci podręcznej bywa starsza niż opublikowana – porównaj z wersja.txt
+  if(window.__artefakt || !location.protocol.startsWith('http')) return;
+  try{
+    const r = await fetch('wersja.txt?t=' + Date.now(), {cache:'no-store'}); if(!r.ok) return;
+    const w = (await r.text()).trim(); if(!w || w === WERSJA) return;
+    let proba = ''; try{ proba = sessionStorage.getItem('skaner-odswiez') || ''; }catch(e){}
+    if(proba !== w){ try{ sessionStorage.setItem('skaner-odswiez', w); }catch(e){} odswiezDo(w); }
+    else $('nowaWersja').hidden = false;
+  }catch(e){}
+}
 if('serviceWorker' in navigator && !window.__artefakt && location.protocol.startsWith('http')){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+sprawdzWersje(); document.addEventListener('visibilitychange', () => { if(!document.hidden) sprawdzWersje(); });
 </script>

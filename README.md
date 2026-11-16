@@ -12,7 +12,8 @@ GS1), LOT i EXP. Tworzy listę zeskanowanych opakowań, porównuje ją z pack li
 | `zxing-wasm-reader.js`, `zxing_reader.wasm` | silnik kodów ZXing C++ (WebAssembly, zxing-wasm 2.2.4) |
 | `zxing.min.js` | silnik awaryjny (zxing-js 0.21.3) |
 | `sw.js`, `manifest.webmanifest` | praca offline i ikona „Dodaj do ekranu początkowego” |
-| `artefakt.html` | ta sama aplikacja w wersji do publikacji jako artefakt claude.ai (tryb zdjęciowy) |
+| `artefakt.html`, `build_artefakt.py` | ta sama aplikacja w wersji do publikacji jako artefakt claude.ai (tryb zdjęciowy) i jej generator |
+| `wersja.txt` | numer opublikowanej wersji (aplikacja sprawdza go przy starcie) |
 | `packlista_przyklad.csv` | przykład formatu pack listy |
 
 ## Jak uruchomić na iPhonie
@@ -49,6 +50,13 @@ Nieznany kod produktu → lista produktów (najpierw sprzedawane, filtr po marce
 **zapamiętywany** (Więcej → Kody nauczone). Kod bez GTIN (np. QR z samym tekstem) nie otwiera okna sam – pojawia się
 podpowiedź z przyciskiem „To jest kod produktu”. Pasek pod podglądem pokazuje silnik, licznik klatek i widziane kody.
 Przyciski: „Jak poprzednio”, „Zapisz bez LOT/EXP”, „Cofnij ostatni”, „Zoom 2×” i „Latarka” (gdy telefon je udostępnia).
+
+**Wersja i odświeżanie.** Numer wersji widać w nagłówku („Skaner SP v4”) i na pasku pod podglądem, razem
+z rozdzielczością kamery, czasem dekodowania i listą widzianych kodów. Aplikacja porównuje się z `wersja.txt`
+i sama przeładowuje się do nowszej wersji. Przy publikacji zmienić numer w trzech miejscach: `WERSJA` w `index.html`,
+`wersja.txt`, `CACHE` w `sw.js`. Przycisk **Klatka** na podglądzie zapisuje dokładnie ten obraz, który dostaje
+dekoder (do diagnozy, gdy kod się nie czyta). Kamera pracuje w najwyższej dostępnej rozdzielczości (do 4K),
+a dekoder czyta tylko widoczny fragment: szybko w małej skali i dokładnie w powiększeniu do 2× (małe DataMatrix).
 
 Silnik kodów: ZXing C++ w WebAssembly (`zxing-wasm-reader.js` + `zxing_reader.wasm`, wersja 2.2.4, kopia lokalna).
 Poprzedni silnik (zxing-js) nie czytał etykiet PolyMem z kamery; został jako awaryjny (`zxing.min.js`).
