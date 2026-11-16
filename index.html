@@ -56,16 +56,21 @@ button.btn.small{min-height:40px;padding:8px 12px;font-size:14px}
 button.btn:disabled{opacity:.45}
 .row{display:flex;gap:8px;flex-wrap:wrap}
 .row>*{flex:1 1 auto;min-width:0}
-.row>input[type=text]{width:auto;flex:1 1 140px}
+.row>input[type=text],.row>input[type=month]{width:auto;flex:1 1 140px}
 .grow{flex:1 1 auto}
-input[type=text],input[type=number],input[type=date],textarea,select{font:inherit;font-size:16px;width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--fg);min-height:48px}
+input[type=text],input[type=number],input[type=date],input[type=month],textarea,select{font:inherit;font-size:16px;width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--fg);min-height:48px}
 textarea{min-height:120px;font-family:var(--mono);font-size:14px}
 .muted{color:var(--muted)}
 .mono{font-family:var(--mono)}
 .small{font-size:13px}
 /* kamera */
 .cam{position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:4/3;max-height:42vh;width:100%}
+.cam.maly{max-height:24vh;aspect-ratio:16/9}
 .cam video{width:100%;height:100%;object-fit:cover;display:block}
+.cam canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.diag{font-size:11px;color:var(--muted);margin-top:-6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.podp{background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn);border-radius:10px;padding:8px 10px;font-size:14px;font-weight:600;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.podp span{flex:1 1 200px}
 .cam .frame{position:absolute;inset:14% 10%;border:2px solid rgba(255,255,255,.85);border-radius:10px;pointer-events:none;box-shadow:0 0 0 2000px rgba(0,0,0,.18)}
 .cam .flash{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .25s}
 .cam .flash.ok{background:var(--ok);opacity:.55}
@@ -82,6 +87,7 @@ textarea{min-height:120px;font-family:var(--mono);font-size:14px}
 .stan.lot{border-left-color:var(--warn)}
 .stan.exp{border-left-color:var(--warn)}
 .ostatni{display:flex;gap:10px;align-items:center}
+.ostatni>div:nth-child(2){flex:1 1 auto;min-width:0}
 .ostatni .n{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;min-width:56px;text-align:center;background:var(--accent-soft);border-radius:10px;padding:6px 8px}
 .alert{border-radius:12px;padding:12px 14px;font-weight:700;font-size:17px;display:flex;gap:10px;align-items:center}
 .alert.bad{background:var(--bad-soft);color:var(--bad);border:2px solid var(--bad)}
@@ -130,15 +136,18 @@ kbd{font-family:var(--mono);background:var(--accent-soft);border-radius:4px;padd
 <section class="view" id="v-skan">
   <div class="cam" id="cam">
     <video id="video" playsinline muted autoplay></video>
+    <canvas id="nakladka"></canvas>
     <div class="frame"></div>
     <div class="flash" id="flash"></div>
-    <div class="tools"><button id="btnLatarka" hidden>Latarka</button><button id="btnStopCam" hidden>Stop</button></div>
+    <div class="tools"><button id="btnZoom" hidden>Zoom 2×</button><button id="btnLatarka" hidden>Latarka</button><button id="btnStopCam" hidden>Stop</button></div>
     <div class="off" id="camOff">
       <div id="camInfo">Kamera wyłączona</div>
       <button class="btn primary" id="btnStartCam">Włącz kamerę</button>
-      <label class="btn" id="lblFoto" hidden>Zrób zdjęcie kodu <input type="file" id="foto" accept="image/*" capture="environment" hidden></label>
+      <label class="btn" id="lblFoto" hidden>Zrób zdjęcie etykiety <input type="file" id="foto" accept="image/*" capture="environment" hidden></label>
     </div>
   </div>
+  <div class="diag mono" id="diag"></div>
+  <div class="podp" id="podp" hidden></div>
   <div id="alertPack" hidden></div>
   <div class="card stan" id="stan"></div>
   <div class="row" id="stanAkcje"></div>
@@ -219,8 +228,7 @@ kbd{font-family:var(--mono);background:var(--accent-soft);border-radius:4px;padd
 </div>
 
 <script src="products.js"></script>
-<script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
-<script>if(!window.ZXing){document.write('<script src="zxing.min.js"><\/script>')}</script>
+<script src="zxing-wasm-reader.js"></script>
 <script>
 /* ======================= DANE ======================= */
 const DB = window.PRODUKTY || {produkty:[], indeks_kodow:{}};
@@ -234,8 +242,9 @@ let ST = null;
 function load(){ try{ const t = localStorage.getItem(KEY); if(t) return JSON.parse(t);}catch(e){} return null; }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(ST)); }catch(e){ toast('Nie udało się zapisać (pamięć przeglądarki)'); } syncDb(); }
 function init(){
-  ST = load() || {sesje:{}, aktualna:null, aliasy:{}, ust:{auto:false, dzwiek:true, wymagaj:false}};
+  ST = load() || {sesje:{}, aktualna:null, aliasy:{}, lotExp:{}, ust:{auto:false, dzwiek:true, wymagaj:false}};
   ST.ust = Object.assign({auto:false, dzwiek:true, wymagaj:false}, ST.ust||{});
+  ST.lotExp = ST.lotExp || {};   // pamięć: REF|LOT → EXP (data z nadruku podawana raz na LOT)
   if(!ST.aktualna || !ST.sesje[ST.aktualna]) nowaSesja(domyslnaNazwa());
 }
 function domyslnaNazwa(){ const d=new Date(); return 'Sesja '+d.toISOString().slice(0,10)+' '+d.toTimeString().slice(0,5); }
@@ -244,7 +253,7 @@ const S = () => ST.sesje[ST.aktualna];
 
 /* ======================= PARSER GS1 ======================= */
 const AI_FIX = {'00':18,'01':14,'02':14,'03':14,'11':6,'12':6,'13':6,'15':6,'16':6,'17':6,'20':2,'410':13,'411':13,'412':13,'413':13,'414':13,'415':13,'416':13,'417':13,'7001':13,'7003':10,'7006':6,'8017':18,'8018':18,'8026':18};
-const AI_VAR = ['10','21','22','235','240','241','242','243','250','251','253','254','255','30','37','3','390','391','392','393','394','395','400','401','402','403','420','421','422','423','424','425','426','427','7002','7004','7005','7007','7008','7009','7010','7020','7021','7022','7023','703','710','711','712','713','714','715','716','8001','8002','8003','8004','8005','8006','8007','8008','8009','8010','8011','8012','8013','8019','8020','8110','8111','8112','8200','90','91','92','93','94','95','96','97','98','99'];
+const AI_VAR = ['10','21','22','235','240','241','242','243','250','251','253','254','255','30','37','390','391','392','393','394','395','400','401','402','403','420','421','422','423','424','425','426','427','7002','7004','7005','7007','7008','7009','7010','7020','7021','7022','7023','703','710','711','712','713','714','715','716','8001','8002','8003','8004','8005','8006','8007','8008','8009','8010','8011','8012','8013','8019','8020','8110','8111','8112','8200','90','91','92','93','94','95','96','97','98','99'];
 const GS = '\x1d';
 function ai17toISO(v){ // YYMMDD → RRRR-MM-DD; DD=00 → ostatni dzień miesiąca
   const m = /^(\d{2})(\d{2})(\d{2})$/.exec(v); if(!m) return null;
@@ -253,59 +262,70 @@ function ai17toISO(v){ // YYMMDD → RRRR-MM-DD; DD=00 → ostatni dzień miesi�
   if(d>31) return null;
   return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
 }
-function gs1ok(d){ d=String(d); let s=0; for(let i=d.length-2,w=3;i>=0;i--,w=4-w) s+=+d[i]*w; return (10-s%10)%10===+d[d.length-1]; }
-function parseGS1(rawIn, format){
-  let raw = String(rawIn||'').trim();
-  const out = {raw, gtin:null, lot:null, exp:null, serial:null, ais:{}, kod_artykulu:null, format:format||''};
-  let s = raw.replace(/^\](C1|d2|Q3|e0|d1|Q1)/,'').replace(/^\x1d+/,'');
-  const F = String(format||'');
-  if(/^(EAN_13|UPC_A|UPC_E|EAN_8|ITF)$/.test(F) && /^\d{8,14}$/.test(s)){ out.ais['01'] = s; out.gtin = s; return out; }
-  if(/^\d{8}$/.test(s) && !/^(EAN_8)$/.test(F)){ // 8 cyfr: AI(17)+data bez GS, albo EAN-8
-    if(s.startsWith('17') && ai17toISO(s.slice(2))){ out.ais['17'] = s.slice(2); out.exp = ai17toISO(s.slice(2)); return out; }
-    if(s.startsWith('11') && ai17toISO(s.slice(2))){ out.ais['11'] = s.slice(2); return out; }
-    if(gs1ok(s)){ out.ais['01'] = s; out.gtin = s; return out; }
+function gs1ok(d){ d=String(d); if(!/^\d{8,18}$/.test(d)) return false; let s=0; for(let i=d.length-2,w=3;i>=0;i--,w=4-w) s+=+d[i]*w; return (10-s%10)%10===+d[d.length-1]; }
+function gs1Sekwencja(s){ // ciąg elementów GS1 bez nawiasów → {ai: wartość} albo null
+  const ais = {}; let i = 0, guard = 0;
+  while(i < s.length && guard++ < 40){
+    let ai = null, len = null;
+    for(const L of [2,3,4]){ const c = s.substr(i,L); if(AI_FIX[c]!==undefined){ ai=c; len=AI_FIX[c]; break; } }
+    if(!ai){ for(const L of [4,3,2]){ const c = s.substr(i,L); if(c.length===L && (AI_VAR.includes(c) || (L===4 && AI_VAR.includes(c.slice(0,3))))){ ai=c; len=null; break; } } }
+    if(!ai) return null;
+    i += ai.length;
+    let val;
+    if(len){ val = s.substr(i,len); if(val.length!==len) return null; i += len; if(s[i]===GS) i++; }
+    else { const j = s.indexOf(GS, i); val = j<0 ? s.slice(i) : s.slice(i,j); i = j<0 ? s.length : j+1; if(!val) return null; }
+    ais[ai] = val;
   }
-  // kod artykułu Curea w tekście (np. REF C1DUO-100100-10)
+  return Object.keys(ais).length ? ais : null;
+}
+function gs1Poprawne(ais){ // ścisła kontrola – używana, gdy nie wiadomo, czy kod jest GS1
+  if(!ais) return false;
+  if(!(ais['01']||ais['10']||ais['17']||ais['21'])) return false;
+  if(ais['01'] && !(ais['01'].length===14 && gs1ok(ais['01']))) return false;
+  for(const d of ['11','13','15','17']) if(ais[d] && !ai17toISO(ais[d])) return false;
+  if(ais['10'] && ais['10'].length>20) return false;
+  return true;
+}
+// gs1: true = czytnik potwierdził GS1 (FNC1), false = zwykły tekst, undefined = nieznane (wpis ręczny)
+function parseGS1(rawIn, format, gs1){
+  const raw = String(rawIn||'').trim();
+  const out = {raw, gtin:null, lot:null, exp:null, serial:null, ais:{}, kod_artykulu:null, format:format||'', gs1:false};
+  const prefiksGS1 = /^\](C1|d2|Q3|e0)/.test(raw);
+  const s = raw.replace(/^\][A-Za-z]\d/,'').replace(/^\x1d+/,'');
+  const F = String(format||'').toUpperCase().replace(/[-_ ]/g,'');   // EAN13, UPCA, CODE128, QRCODE, DATAMATRIX …
   const ka = /\b((?:P1B|P1D|P1|C1DUO|C2|P2)-\d{6}-\d{1,3})\b/i.exec(s); if(ka) out.kod_artykulu = ka[1].toUpperCase();
-  // format z nawiasami: (01)…(17)…(10)…
-  if(/^\(\d{2,4}\)/.test(s)){
+  if(/^(EAN13|UPCA|UPCE|EAN8)$/.test(F) && /^\d{8,14}$/.test(s)){ out.ais['01'] = s; out.gtin = s; return out; }
+  if(/^\(\d{2,4}\)/.test(s)){                       // zapis z nawiasami: (01)…(17)…(10)…
     const re = /\((\d{2,4})\)([^(]*)/g; let m;
-    while((m = re.exec(s))) out.ais[m[1]] = m[2].replace(GS,'').trim();
-  } else if(/^\d{2}/.test(s) && (s.includes(GS) || /^01\d{14}/.test(s) || /^(10|17|11|21)/.test(s)) && !/^\d{8}$|^\d{12,14}$/.test(s)){
-    // ciąg elementów GS1 bez nawiasów
-    let i = 0, guard = 0;
-    while(i < s.length && guard++ < 40){
-      let ai = null, len = null;
-      for(const L of [2,3,4]){ const c = s.substr(i,L); if(AI_FIX[c]!==undefined){ ai=c; len=AI_FIX[c]; break; } }
-      if(!ai){ for(const L of [4,3,2]){ const c = s.substr(i,L); if(AI_VAR.includes(c) || (L===4 && AI_VAR.includes(c.slice(0,3)))){ ai=c; len=null; break; } } }
-      if(!ai){ out.ais['?'] = s.slice(i); break; }
-      i += ai.length;
-      let val;
-      if(len){ val = s.substr(i,len); i += len; if(s[i]===GS) i++; }
-      else { const j = s.indexOf(GS, i); val = j<0 ? s.slice(i) : s.slice(i,j); i = j<0 ? s.length : j+1; }
-      out.ais[ai] = val;
-    }
-  } else if(/^\d{8}$|^\d{12,14}$/.test(s)){ out.ais['01'] = s; }
+    while((m = re.exec(s))) out.ais[m[1]] = m[2].split(GS).join('').trim();
+    out.gs1 = true;
+  } else if(gs1 !== false && /^\d{2}/.test(s)){     // ciąg AI bez nawiasów
+    const pewne = gs1 === true || prefiksGS1;
+    const ais = gs1Sekwencja(s);
+    if(ais && (pewne || (gs1Poprawne(ais) && !/^\d{8}$|^\d{12,14}$/.test(s)) || (/^\d{8}$/.test(s) && /^1[17]/.test(s) && gs1Poprawne(ais)))){ out.ais = ais; out.gs1 = true; }
+  }
+  if(!out.gs1 && /^\d{8}$|^\d{12,14}$/.test(s) && gs1ok(s)) out.ais['01'] = s;   // goły GTIN (EAN/UPC/ITF-14)
   if(out.ais['01']) out.gtin = out.ais['01'];
   if(out.ais['02'] && !out.gtin) out.gtin = out.ais['02'];
   if(out.ais['10']) out.lot = out.ais['10'].trim();
   if(out.ais['21']) out.serial = out.ais['21'].trim();
-  if(out.ais['17']) out.exp = ai17toISO(out.ais['17']) || out.ais['17'];
+  if(out.ais['17']) out.exp = ai17toISO(out.ais['17']) || null;
   return out;
 }
-function parseDate(txt){ // tekst daty → ISO lub null
-  let t = String(txt||'').trim().toUpperCase().replace(/^(EXP|EXP\.|UŻYĆ DO|USE BY|BEST BEFORE)[:\s]*/,'');
+function parseDate(txt, tylkoZSeparatorem){ // tekst daty → ISO lub null
+  let t = String(txt||'').trim().toUpperCase().replace(/^(EXP\.?|UŻYĆ DO|USE BY|BEST BEFORE)[:\s]*/,'');
   let m;
   if((m=/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})$/.exec(t))) return iso(m[1],m[2],m[3]);
   if((m=/^(\d{1,2})[-./](\d{1,2})[-./](\d{4})$/.exec(t))) return iso(m[3],m[2],m[1]);
   if((m=/^(\d{4})[-./](\d{1,2})$/.exec(t))) return iso(m[1],m[2],0);
   if((m=/^(\d{1,2})[-./](\d{4})$/.exec(t))) return iso(m[2],m[1],0);
+  const MON={JAN:1,FEB:2,MAR:3,APR:4,MAY:5,JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12,STY:1,LUT:2,KWI:4,MAJ:5,CZE:6,LIP:7,SIE:8,WRZ:9,PAŹ:10,PAZ:10,LIS:11,GRU:12};
+  if((m=/^([A-ZŹ]{3})[\s-]*(\d{4})$/.exec(t)) && MON[m[1]]) return iso(m[2],MON[m[1]],0);
+  if((m=/^(\d{1,2})[\s-]*([A-ZŹ]{3})[\s-]*(\d{4})$/.exec(t)) && MON[m[2]]) return iso(m[3],MON[m[2]],m[1]);
+  if(tylkoZSeparatorem) return null;               // same cyfry mogą być numerem LOT
   if((m=/^(\d{4})(\d{2})(\d{2})$/.exec(t))) return iso(m[1],m[2],m[3]);
   if((m=/^(\d{2})(\d{2})(\d{2})$/.exec(t))) return ai17toISO(t);
   if((m=/^(\d{4})(\d{2})$/.exec(t))) return iso(m[1],m[2],0);
-  const MON={JAN:1,FEB:2,MAR:3,APR:4,MAY:5,JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12,STY:1,LUT:2,MAR_:3,KWI:4,MAJ:5,CZE:6,LIP:7,SIE:8,WRZ:9,PAŹ:10,PAZ:10,LIS:11,GRU:12};
-  if((m=/^([A-ZŹ]{3})[\s-]*(\d{4})$/.exec(t)) && MON[m[1]]) return iso(m[2],MON[m[1]],0);
-  if((m=/^(\d{1,2})[\s-]*([A-ZŹ]{3})[\s-]*(\d{4})$/.exec(t)) && MON[m[2]]) return iso(m[3],MON[m[2]],m[1]);
   return null;
   function iso(y,mo,d){ y=+y; mo=+mo; d=+d; if(mo<1||mo>12||y<2000||y>2100) return null; if(!d) d=new Date(y,mo,0).getDate(); if(d>31) return null; return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
 }
@@ -339,44 +359,73 @@ function szukaj(q){
 
 /* ======================= STAN SKANOWANIA ======================= */
 let pending = null;   // {sku, poziom, gtin, lot, exp, raw, zrodlo}
-let lastRaw = '', lastRawT = 0;
+const blok = {}, ostatnioWidziane = {};   // kod zapisany i wciąż w kadrze → nie licz drugi raz, dopóki nie zniknie na 1,2 s
 function krok(){ if(!pending) return 'PRODUKT'; if(!pending.lot && !pending.lotPominiety) return 'LOT'; if(!pending.exp && !pending.expPominiety) return 'EXP'; return 'GOTOWE'; }
-
-function onKod(raw, zrodlo, format){
-  raw = String(raw||'').trim(); if(!raw) return;
-  const t = Date.now(); if(raw===lastRaw && t-lastRawT < 1800) return; lastRaw=raw; lastRawT=t;
-  const p = parseGS1(raw, format);
-  const k = krok();
-  const maProdukt = !!(p.gtin || p.kod_artykulu);
-  if(k==='PRODUKT' || maProdukt){
-    if(maProdukt || (!p.lot && !p.exp && !parseDate(raw))){
-      if(pending && maProdukt){ // nowy produkt zanim poprzedni skończony → zapisz poprzedni bez brakujących danych
-        if(ST.ust.wymagaj){ blad('Najpierw LOT/EXP dla: '+PROD[pending.sku].nazwa); return; }
-        zatwierdz('skan');
-      }
-      return produktZeSkanu(p, zrodlo);
-    }
-    // sam LOT/EXP bez produktu w kroku PRODUKT → dopisz do ostatniego skanu
-    const s = S(); const last = s.skany[s.skany.length-1];
-    if(last && (p.lot || p.exp || parseDate(raw))){
-      if(p.lot) last.lot = p.lot; if(p.exp) last.exp = p.exp;
-      if(!p.lot && !p.exp){ const d = parseDate(raw); if(d) last.exp = d; }
-      save(); okFlash('Uzupełniono ostatnią pozycję: '+PROD[last.sku].nazwa); render(); return;
-    }
-    return nieznany(p);
-  }
-  // krok LOT / EXP
-  let zmiana = false;
-  if(p.lot){ pending.lot = p.lot; zmiana = true; }
-  if(p.exp){ pending.exp = p.exp; zmiana = true; }
-  if(!zmiana){
-    const d = parseDate(raw);
-    if(k==='LOT' && !d){ pending.lot = raw.replace(/^(LOT|LOT\.|LOT:|\(10\))\s*/i,'').trim(); zmiana = true; }
-    else if(d){ pending.exp = d; zmiana = true; }
-    else if(k==='EXP'){ pending.exp = raw.replace(/^(EXP|EXP\.|EXP:|\(17\))\s*/i,'').trim(); zmiana = true; }
-  }
-  if(zmiana){ okFlash(); if(krok()==='GOTOWE') zatwierdz('skan'); else render(); }
+const kluczLot = (sku, lot) => ((PROD[sku] && PROD[sku].ref) || sku) + '|' + String(lot||'').toUpperCase();
+function jestProduktem(p){
+  if(p.gs1 && p.gtin) return true;
+  if(p.kod_artykulu) return true;
+  if(p.gtin && /^(EAN13|UPCA|UPCE|EAN8)$/.test(String(p.format||'').toUpperCase().replace(/[-_ ]/g,''))) return true;
+  return kandydaci(p).length > 0;   // goły numer lub tekst tylko wtedy, gdy znamy go z bazy / kodów nauczonych
 }
+function expZPamieci(){ if(pending && pending.lot && !pending.exp){ const e = ST.lotExp[kluczLot(pending.sku, pending.lot)]; if(e){ pending.exp = e; pending.expZPamieci = true; } } }
+function zastosujLotExp(p, zrodlo){ // kod LOT / EXP dla rozpoczętej pozycji; true = coś uzupełniono
+  if(!pending || p.raw===pending.raw) return false;
+  const k = krok(); let zm = false;
+  if(p.gs1){ if(p.lot && !pending.lot){ pending.lot = p.lot; zm = true; } if(p.exp && !pending.exp){ pending.exp = p.exp; zm = true; } }
+  else {
+    const txt = p.raw.replace(/^\][A-Za-z]\d/,'').trim();
+    if(k==='LOT'){ const d = parseDate(txt, true); if(d){ pending.exp = d; zm = true; } else if(txt.length<=30){ pending.lot = txt.replace(/^(LOT[.:]?|\(10\))\s*/i,'').trim(); zm = true; } }
+    else if(k==='EXP'){ const d = parseDate(txt); if(d && txt.toUpperCase()!==String(pending.lot).toUpperCase()){ pending.exp = d; zm = true; } }
+  }
+  if(zm){ expZPamieci(); if(krok()==='GOTOWE') zatwierdz(zrodlo||'skan'); else { okFlash(); render(); } }
+  return zm;
+}
+// Wpis ręczny, zdjęcie, testy: jeden kod naraz
+function onKod(raw, zrodlo, format, gs1){
+  raw = String(raw||'').trim(); if(!raw) return;
+  const p = parseGS1(raw, format, gs1);
+  if(pending){
+    if(!(jestProduktem(p) && raw!==pending.raw)){ if(!zastosujLotExp(p, zrodlo) && raw!==pending.raw) toast('Ten kod nie pasuje do kroku: '+krok()); return; }
+    if(ST.ust.wymagaj){ blad('Najpierw LOT/EXP dla: '+PROD[pending.sku].nazwa); return; }
+    pending.lotPominiety = pending.expPominiety = true; zatwierdz(pending.zrodlo);
+  }
+  if(jestProduktem(p)) return produktZeSkanu(p, zrodlo);
+  const s = S(); const last = s.skany[s.skany.length-1]; const d = parseDate(raw, true);
+  if(last && ((p.gs1 && (p.lot||p.exp)) || d) && (!last.lot || !last.exp)){   // sam LOT/EXP → uzupełnij ostatnią pozycję
+    if(p.lot && !last.lot) last.lot = p.lot.toUpperCase(); if((p.exp||d) && !last.exp) last.exp = p.exp||d;
+    save(); okFlash('Uzupełniono ostatnią pozycję: '+last.nazwa); render(); return;
+  }
+  nieznany(p, zrodlo);
+}
+// Kamera: wszystkie kody z jednej klatki naraz (produkt + LOT z tej samej etykiety)
+function zKlatki(wyn, w, h, foto){
+  const t = Date.now();
+  wyn.forEach(r => { ostatnioWidziane[r.raw] = t; });
+  for(const k in blok){ if(t - (ostatnioWidziane[k]||0) > 1200) delete blok[k]; }
+  if(!wyn.length){ ustawWidze('', []); return; }
+  const sr = r => { if(!r.pos) return [w/2, h/2]; const P = [r.pos.topLeft, r.pos.topRight, r.pos.bottomRight, r.pos.bottomLeft]; return [P.reduce((a,q)=>a+q.x,0)/4, P.reduce((a,q)=>a+q.y,0)/4]; };
+  const an = wyn.map(r => { const p = parseGS1(r.raw, r.format, r.gs1); const c = sr(r); return {r, p, c, d: Math.hypot(c[0]-w/2, c[1]-h/2), prod: jestProduktem(p)}; }).sort((a,b) => a.d-b.d);
+  const prod = an.find(a => a.prod); const inne = an.filter(a => !a.prod);
+  if(prod) inne.sort((a,b) => Math.hypot(a.c[0]-prod.c[0], a.c[1]-prod.c[1]) - Math.hypot(b.c[0]-prod.c[0], b.c[1]-prod.c[1]));
+  ustawWidze('', an);
+  if(document.getElementById('modal')) return;
+  if(pending){
+    if(prod && prod.r.raw!==pending.raw && !inne.length) ustawWidze('Inny produkt w kadrze. Najpierw dokończ lub anuluj bieżącą pozycję.', an);
+    for(const a of inne){ if(!pending || zastosujLotExp(a.p, foto?'foto':'skan')) break; }
+    return;
+  }
+  if(prod){
+    if(blok[prod.r.raw] && !foto){ ustawWidze('Zapisane. Odsuń telefon, żeby policzyć następne opakowanie, albo dotknij „+1 takie samo”.', an); return; }
+    produktZeSkanu(prod.p, foto?'foto':'skan');
+    for(const a of inne){ if(!pending || krok()!=='LOT') break; zastosujLotExp(a.p, foto?'foto':'skan'); }
+    return;
+  }
+  const a0 = inne[0];
+  kodBezProduktu = a0.r.raw;
+  ustawWidze('Widzę kod „'+a0.r.raw.slice(0,24)+'” bez kodu produktu. Skieruj kamerę tak, żeby było widać też kod produktu.', an, true);
+}
+let kodBezProduktu = '';
 function produktZeSkanu(p, zrodlo){
   const kand = kandydaci(p);
   if(kand.length===1){ ustawPending(kand[0].sku, kand[0].poziom, p, zrodlo); return; }
@@ -392,17 +441,21 @@ function ustawPending(sku, poziom, p, zrodlo){
   pending = {sku, poziom: poziom||prod.poziom, gtin: p.gtin||'', lot: p.lot||'', exp: p.exp||'', raw: p.raw||'', zrodlo: zrodlo||'skan'};
   const s = S(); const last = s.skany[s.skany.length-1];
   if(ST.ust.auto && last && last.sku===sku && (last.lot||last.exp)){ if(!pending.lot) pending.lot=last.lot; if(!pending.exp) pending.exp=last.exp; }
-  okFlash();
-  if(krok()==='GOTOWE') zatwierdz(zrodlo); else render();
+  expZPamieci();
+  if(krok()==='GOTOWE') zatwierdz(zrodlo); else { okFlash(); render(); }
 }
 function zatwierdz(zrodlo){
   if(!pending) return;
   const prod = PROD[pending.sku]; const s = S();
+  const ilosc = (pending.poziom==='karton' && prod.opak_w_kartonie>1) ? prod.opak_w_kartonie : 1;   // karton zbiorczy = N opakowań
   const rec = {id:uid(), czas:teraz(), sku:prod.sku, nazwa:prod.nazwa, marka:prod.marka, poziom:pending.poziom, szt_w_opak:prod.szt_w_opak,
-               ilosc:1, lot:(pending.lot||'').toUpperCase(), exp:pending.exp||'', gtin:pending.gtin||'', zrodlo:zrodlo||pending.zrodlo||'skan', kod_surowy:pending.raw||''};
-  s.skany.push(rec); pending = null; save();
+               ilosc, lot:(pending.lot||'').toUpperCase(), exp:pending.exp||'', gtin:pending.gtin||'', zrodlo:zrodlo||pending.zrodlo||'skan', kod_surowy:pending.raw||''};
+  s.skany.push(rec);
+  if(rec.lot && rec.exp) ST.lotExp[kluczLot(rec.sku, rec.lot)] = rec.exp;
+  if(pending.raw){ blok[pending.raw] = true; ostatnioWidziane[pending.raw] = Date.now(); }
+  pending = null; save();
   const st = sprawdzPack(rec);
-  if(st==='za_duzo') badFlash('ZA DUŻO: '+prod.nazwa); else okFlash();
+  if(st==='za_duzo') badFlash('ZA DUŻO: '+prod.nazwa); else okFlash('Zapisano: '+prod.nazwa+(ilosc>1?' (karton = '+ilosc+' opak.)':''));
   render();
 }
 function sprawdzPack(rec){ // status pozycji pack listy po dodaniu skanu
@@ -412,6 +465,7 @@ function sprawdzPack(rec){ // status pozycji pack listy po dodaniu skanu
 }
 const pasuje = (l, r) => l.sku===r.sku && (!l.lot || l.lot.toUpperCase()===(r.lot||'').toUpperCase()) && (!l.exp || l.exp===r.exp);
 const licz = l => S().skany.filter(r => pasuje(l, r)).reduce((a,r)=>a+r.ilosc,0);
+const sztuk = r => r.poziom==='sztuka' ? r.ilosc : r.ilosc*(r.szt_w_opak||1);
 
 /* ======================= PICKER ======================= */
 let picker = null;
@@ -493,23 +547,28 @@ function render(){
   if(widok==='pack') renderPack();
   if(widok==='wiecej') renderWiecej();
 }
+let krokOst = '';
 function renderStan(){
   const el = $('stan'), ak = $('stanAkcje'); const k = krok();
   el.className = 'card stan ' + (k==='LOT'?'lot':k==='EXP'?'exp':'');
+  $('cam').classList.toggle('maly', !!pending);
   if(!pending){
-    el.innerHTML = `<div class="krok">Krok 1 z 3</div><div class="tytul">Zeskanuj kod produktu</div><div class="muted small">Kod kreskowy opakowania (PolyMem: EAN/UPC lub GS1-128; Curea: kod QR). Kod QR z GTIN+LOT+EXP dodaje pozycję od razu.</div>`;
-    ak.innerHTML = ''; return;
+    el.innerHTML = `<div class="krok">Krok 1 z 3</div><div class="tytul">Skieruj kamerę na etykietę</div><div class="muted small">Kod produktu i kod LOT z tej samej etykiety odczytują się razem (zielona i żółta ramka). Datę EXP z nadruku podajesz raz na LOT, potem jest podpowiadana.</div>`;
+    ak.innerHTML = ''; krokOst = ''; $('cam').classList.remove('maly'); return;
   }
   const p = PROD[pending.sku];
-  const pola = `<div class="pola"><span class="muted">Produkt</span><b>${esc(p.sku)}</b><span class="muted">Opak.</span><b>${p.szt_w_opak} szt.${pending.poziom!=='opakowanie' ? ' (kod '+esc(pending.poziom)+')':''}</b><span class="muted">LOT</span><b>${esc(pending.lot||'—')}</b><span class="muted">EXP</span><b>${esc(pending.exp||'—')}</b></div>`;
-  el.innerHTML = `<div class="krok">Krok ${k==='LOT'?'2':'3'} z 3 · ${esc(p.marka)}</div><div class="tytul">${k==='LOT'?'Zeskanuj LOT':'Zeskanuj datę EXP'}</div><div>${esc(p.nazwa)}</div>${pola}`;
+  const pola = `<div class="pola"><span class="muted">Produkt</span><b>${esc(p.sku)}</b><span class="muted">Opak.</span><b>${p.szt_w_opak} szt.${pending.poziom==='karton' ? ' · karton zbiorczy'+(p.opak_w_kartonie>1 ? ' = '+p.opak_w_kartonie+' opak.' : '') : pending.poziom!=='opakowanie' ? ' (kod '+esc(pending.poziom)+')':''}</b><span class="muted">LOT</span><b>${esc(pending.lot||'—')}</b><span class="muted">EXP</span><b>${esc(pending.exp||'—')}</b></div>`;
+  el.innerHTML = `<div class="krok">Krok ${k==='LOT'?'2':'3'} z 3 · ${esc(p.marka)}</div><div class="tytul">${k==='LOT'?'Zeskanuj kod LOT':'Podaj datę ważności (EXP)'}</div>${k==='EXP'?'<div class="muted small">EXP jest na etykiecie nadrukiem przy klepsydrze (np. 2031-06). Wybierz miesiąc i rok poniżej.</div>':''}<div>${esc(p.nazwa)}</div>${pola}`;
   const s = S(); const last = s.skany[s.skany.length-1];
   ak.innerHTML = `
-    <button class="btn" id="akWpisz">Wpisz ${k==='LOT'?'LOT':'EXP'}</button>
+    ${k==='EXP' ? '<input type="month" id="expMies" aria-label="EXP: miesiąc i rok"><button class="btn primary" id="akExpOk">Zapisz EXP</button>' : ''}
+    <button class="btn" id="akWpisz">Wpisz ${k==='LOT'?'LOT':'pełną datę'}</button>
     ${last && (last.lot||last.exp) ? `<button class="btn" id="akJakPoprz">Jak poprzednio<br><span class="small mono">${esc(last.lot||'—')} · ${esc(last.exp||'—')}</span></button>`:''}
     ${ST.ust.wymagaj ? '' : `<button class="btn ok" id="akPomin">Zapisz bez ${k==='LOT'?'LOT/EXP':'EXP'}</button>`}
     <button class="btn danger" id="akAnuluj">Anuluj</button>`;
   $('akWpisz').onclick = () => prompt2(k==='LOT'?'LOT':'EXP (RRRR-MM-DD)', '', v => { if(!v.trim()) return; if(k==='LOT') pending.lot=v.trim(); else pending.exp = parseDate(v)||v.trim(); if(krok()==='GOTOWE') zatwierdz('recznie'); else render(); });
+  if(k==='EXP' && krokOst!=='EXP'){ try{ $('stanAkcje').scrollIntoView({block:'nearest', behavior:'smooth'}); }catch(e){} } krokOst = k;
+  const eo = $('akExpOk'); if(eo) eo.onclick = () => { const v = $('expMies').value; const d = parseDate(v); if(!d) return toast('Wybierz miesiąc i rok EXP'); pending.exp = d; zatwierdz(pending.zrodlo); };
   const jp = $('akJakPoprz'); if(jp) jp.onclick = () => { pending.lot = pending.lot||last.lot; pending.exp = pending.exp||last.exp; if(krok()==='GOTOWE') zatwierdz('skan'); else render(); };
   const pm = $('akPomin'); if(pm) pm.onclick = () => { pending.lotPominiety = true; pending.expPominiety = true; zatwierdz(pending.zrodlo); };
   $('akAnuluj').onclick = () => { pending=null; render(); };
@@ -519,7 +578,8 @@ function renderOstatni(){
   const n = s.skany.reduce((a,r)=>a+r.ilosc,0);
   if(!last){ el.innerHTML = `<div class="n">0</div><div><b>Brak skanów w tej sesji</b><div class="small muted">Każde zeskanowane opakowanie = 1 pozycja.</div></div>`; return; }
   const g = s.skany.filter(r => r.sku===last.sku && r.lot===last.lot && r.exp===last.exp).reduce((a,r)=>a+r.ilosc,0);
-  el.innerHTML = `<div class="n">${n}</div><div style="min-width:0"><b>Ostatni: ${esc(last.nazwa)}</b><div class="small mono muted">LOT ${esc(last.lot||'—')} · EXP ${esc(last.exp||'—')} · ten LOT: ${g} opak. · ${esc(last.czas.slice(11))}</div></div>`;
+  el.innerHTML = `<div class="n">${n}</div><div style="min-width:0"><b>Ostatni: ${esc(last.nazwa)}</b><div class="small mono muted">LOT ${esc(last.lot||'—')} · EXP ${esc(last.exp||'—')} · ten LOT: ${g} opak. · ${esc(last.czas.slice(11))}</div></div><button class="btn small" id="btnPlus1" style="flex:0 0 auto">+1 takie samo</button>`;
+  $('btnPlus1').onclick = () => { const s2 = S(); const r = s2.skany[s2.skany.length-1]; if(!r) return; const kopia = Object.assign({}, r, {id:uid(), czas:teraz(), zrodlo:'recznie', kod_surowy:''}); s2.skany.push(kopia); save(); if(sprawdzPack(kopia)==='za_duzo') badFlash('ZA DUŻO: '+r.nazwa); else okFlash(); render(); };
 }
 function renderPackAlert(){
   const s = S(); const el = $('alertPack');
@@ -540,7 +600,7 @@ function grupuj(skany){
 }
 function renderLista(){
   const s = S(); const gr = grupuj(s.skany);
-  const n = s.skany.reduce((a,r)=>a+r.ilosc,0); const szt = s.skany.reduce((a,r)=>a+r.ilosc*(r.poziom==='opakowanie'?r.szt_w_opak:1),0);
+  const n = s.skany.reduce((a,r)=>a+r.ilosc,0); const szt = s.skany.reduce((a,r)=>a+sztuk(r),0);
   $('listaPodsumowanie').innerHTML = `<div class="card"><div class="row"><div><div class="muted small">Opakowań</div><div style="font-size:28px;font-weight:800">${n}</div></div><div><div class="muted small">Sztuk</div><div style="font-size:28px;font-weight:800">${szt}</div></div><div><div class="muted small">Grup</div><div style="font-size:28px;font-weight:800">${gr.length}</div></div></div></div>`;
   const el = $('grupy'); el.innerHTML = gr.length ? '' : '<div class="muted">Nic nie zeskanowano.</div>';
   gr.forEach(g => {
@@ -574,7 +634,7 @@ function renderWiecej(){
   const al = Object.entries(ST.aliasy);
   $('aliasyLista').innerHTML = al.length ? al.map(([k,a]) => `<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)"><span class="grow"><span class="mono">${esc(a.kod||k)}</span> → ${esc(PROD[a.sku]?PROD[a.sku].nazwa:a.sku)}</span><button class="btn small" data-k="${esc(k)}">Usuń</button></div>`).join('') : '<div class="muted">Brak. Gdy zeskanujesz nieznany kod i wybierzesz produkt, kod zostanie tu zapamiętany.</div>';
   $('aliasyLista').querySelectorAll('button').forEach(b => b.onclick = () => { delete ST.aliasy[b.dataset.k]; save(); render(); });
-  $('info').innerHTML = `Baza produktów: ${DB.produkty.length} pozycji (${DB.produkty.filter(p=>p.sprzedawany).length} sprzedawanych), ${Object.keys(DB.indeks_kodow).length} kodów, wygenerowana ${esc(DB.wygenerowano||'?')}.<br>Tryb: ${trybOpis}. Dane są zapisane w tej przeglądarce (telefonie) – eksportuj CSV po każdej sesji.`;
+  $('info').innerHTML = `Baza produktów: ${DB.produkty.length} pozycji (${DB.produkty.filter(p=>p.sprzedawany).length} sprzedawanych), ${Object.keys(DB.indeks_kodow).length} kodów, wygenerowana ${esc(DB.wygenerowano||'?')}.<br>Tryb: ${trybOpis}, silnik kodów: ${silnik}, zapamiętane EXP dla ${Object.keys(ST.lotExp).length} LOT-ów. Dane są zapisane w tej przeglądarce (telefonie) – eksportuj CSV po każdej sesji.`;
 }
 
 /* ======================= PACK LISTA: parsowanie ======================= */
@@ -607,7 +667,7 @@ function csvSkany(s){
 function csvPodsum(s){
   const h = ['sesja','sku','nazwa','lot','exp','ilosc_opak','szt_w_opak','ilosc_szt','pack_lista_ilosc','status'];
   return BOM + h.join(';') + '\n' + grupuj(s.skany).map(g => { const l = s.pack.find(l=>pasuje(l,g)); const ile = l?licz(l):''; const st = !s.pack.length?'':!l?'poza_lista':ile>l.ilosc?'za_duzo':ile===l.ilosc?'ok':'brakuje';
-    return [s.nazwa, g.sku, g.nazwa, g.lot, g.exp, g.ilosc, g.szt_w_opak, g.ilosc*(g.poziom==='opakowanie'?g.szt_w_opak:1), l?l.ilosc:'', st].map(csvCell).join(';'); }).join('\n') + '\n';
+    return [s.nazwa, g.sku, g.nazwa, g.lot, g.exp, g.ilosc, g.szt_w_opak, sztuk(g), l?l.ilosc:'', st].map(csvCell).join(';'); }).join('\n') + '\n';
 }
 function csvAliasy(){ return BOM + 'kod;sku;poziom;nazwa;kiedy\n' + Object.entries(ST.aliasy).map(([k,a]) => [a.kod||k, a.sku, a.poziom, PROD[a.sku]?PROD[a.sku].nazwa:'', a.kiedy||''].map(csvCell).join(';')).join('\n') + '\n'; }
 const slug = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,40) || 'sesja';
@@ -629,41 +689,102 @@ window.__artefakt = !!(window.claude && typeof window.claude.use === 'function')
 if(window.__artefakt){ trybOpis = 'artefakt claude.ai'; window.claude.use('downloads').then(d => { window.__dl = d; }).catch(()=>{}); window.claude.use('db').then(d => { dbRef = d; if(d) syncDb(); }).catch(()=>{}); }
 function syncDb(){ if(!dbRef) return; clearTimeout(syncT); syncT = setTimeout(async () => { try{ const s = S(); await dbRef.doc('sesje/'+s.id).set({id:s.id, nazwa:s.nazwa, utworzono:s.utworzono, zaktualizowano:teraz(), skany:s.skany, pack_lista:s.pack, podsumowanie:grupuj(s.skany)}); await dbRef.doc('aliasy/wszystkie').set({aliasy:ST.aliasy, zaktualizowano:teraz()}); }catch(e){} }, 1200); }
 
-/* ======================= KAMERA ======================= */
-let reader = null, camOn = false, track = null;
-const FORMATS = () => [ZXing.BarcodeFormat.QR_CODE, ZXing.BarcodeFormat.DATA_MATRIX, ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.ITF, ZXing.BarcodeFormat.CODE_93];
-function fmt(res){ try{ return ZXing.BarcodeFormat[res.getBarcodeFormat()] || ''; }catch(e){ return ''; } }
-function hints(){ const h = new Map(); h.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, FORMATS()); h.set(ZXing.DecodeHintType.ASSUME_GS1, true); h.set(ZXing.DecodeHintType.TRY_HARDER, true); return h; }
+/* ======================= KAMERA I DEKODER ======================= */
+// Silnik: ZXing C++ (WebAssembly, zxing-wasm 2.2.4). Awaryjnie: zxing-js.
+let wasmOK = null, silnik = 'ładowanie…', zxjs = null;
+const OPT = {tryHarder:true, maxNumberOfSymbols:6, formats:['Code128','EAN-13','EAN-8','UPC-A','UPC-E','ITF','Code39','Code93','QRCode','DataMatrix','DataBar','DataBarExpanded']};
+function initDekoder(){
+  if(!window.ZXingWASM){ wasmOK = false; silnik = 'zxing-js (awaryjny)'; return; }
+  try{
+    Promise.resolve(ZXingWASM.prepareZXingModule({overrides:{locateFile:(p, prefix) => /\.wasm$/.test(p) ? 'zxing_reader.wasm' : prefix + p}, fireImmediately:true}))
+      .then(() => { wasmOK = true; silnik = 'ZXing C++'; ustawWidze(''); })
+      .catch(() => { wasmOK = false; silnik = 'zxing-js (awaryjny)'; ustawWidze(''); });
+  }catch(e){ wasmOK = false; silnik = 'zxing-js (awaryjny)'; }
+}
+function wczytajSkrypt(src){ return new Promise((ok, nie) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = nie; document.head.appendChild(s); }); }
+async function dekoduj(imageData){ // → [{raw, format, gs1, pos}]
+  if(wasmOK !== false && window.ZXingWASM){
+    try{
+      const r = await ZXingWASM.readBarcodes(imageData, OPT); wasmOK = true; silnik = 'ZXing C++';
+      return r.filter(x => x.text && x.isValid !== false).map(x => ({raw:x.text, format:x.format, gs1: x.contentType==='GS1' || /^\](C1|d2|Q3|e0)/.test(x.symbologyIdentifier||''), pos:x.position}));
+    }catch(e){ wasmOK = false; silnik = 'zxing-js (awaryjny)'; }
+  }
+  if(!window.ZXing){ try{ await wczytajSkrypt('zxing.min.js'); }catch(e){ try{ await wczytajSkrypt('https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js'); }catch(_){} } }
+  if(!window.ZXing) return [];
+  if(!zxjs){ const h = new Map(); h.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE, ZXing.BarcodeFormat.DATA_MATRIX, ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.ITF]); h.set(ZXing.DecodeHintType.ASSUME_GS1, true); h.set(ZXing.DecodeHintType.TRY_HARDER, true); zxjs = new ZXing.MultiFormatReader(); zxjs.setHints(h); }
+  try{
+    const c = document.createElement('canvas'); c.width = imageData.width; c.height = imageData.height; c.getContext('2d').putImageData(imageData, 0, 0);
+    const x = zxjs.decodeWithState(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(new ZXing.HTMLCanvasElementLuminanceSource(c))));
+    const t = x.getText(); return [{raw:t, format:ZXing.BarcodeFormat[x.getBarcodeFormat()], gs1:/^\](C1|d2|Q3|e0)/.test(t), pos:null}];
+  }catch(e){ return []; }
+}
+let stream = null, camOn = false, track = null, zajety = false, klatki = 0, petlaT = null;
+const kan = document.createElement('canvas'); const kctx = kan.getContext('2d', {willReadFrequently:true});
 async function startCam(){
-  if(!window.ZXing){ $('camInfo').textContent = 'Biblioteka skanera nie załadowała się. Sprawdź połączenie i odśwież.'; return; }
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ trybFoto('Kamera na żywo niedostępna w tym widoku.'); return; }
   try{
-    reader = new ZXing.BrowserMultiFormatReader(hints(), 150);
-    await reader.decodeFromConstraints({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}}}, $('video'), (res, err) => { if(res) onKod(res.getText(), 'skan', fmt(res)); });
-    camOn = true; $('camOff').hidden = true; $('btnStopCam').hidden = false;
-    try{ const st = $('video').srcObject; track = st && st.getVideoTracks()[0]; const caps = track && track.getCapabilities ? track.getCapabilities() : {}; if(caps && caps.torch) $('btnLatarka').hidden = false; }catch(e){}
+    stream = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1080}}});
+    const v = $('video'); v.srcObject = stream; try{ await v.play(); }catch(e){}
+    track = stream.getVideoTracks()[0]; camOn = true; klatki = 0;
+    $('camOff').hidden = true; $('btnStopCam').hidden = false;
+    try{ const caps = track.getCapabilities ? track.getCapabilities() : {}; if(caps.torch) $('btnLatarka').hidden = false; if(caps.zoom && caps.zoom.max >= 2) $('btnZoom').hidden = false; if(caps.focusMode && caps.focusMode.includes('continuous')) track.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{}); }catch(e){}
     try{ if(navigator.wakeLock) navigator.wakeLock.request('screen').catch(()=>{}); }catch(e){}
+    petla();
   }catch(e){
     camOn = false; trybFoto('Brak dostępu do kamery ('+(e && e.name ? e.name : e)+'). W Safari: aA → Ustawienia witryny → Kamera: Zezwól.');
   }
 }
-function stopCam(){ try{ reader && reader.reset(); }catch(e){} camOn=false; track=null; $('camOff').hidden=false; $('btnStopCam').hidden=true; $('btnLatarka').hidden=true; $('camInfo').textContent='Kamera wyłączona'; }
-function trybFoto(msg){ $('camInfo').textContent = msg + ' Możesz zrobić zdjęcie kodu.'; $('lblFoto').hidden = false; }
+function stopCam(){ camOn = false; clearTimeout(petlaT); try{ stream && stream.getTracks().forEach(t => t.stop()); }catch(e){} stream = null; track = null; try{ $('video').srcObject = null; }catch(e){} $('camOff').hidden = false; $('btnStopCam').hidden = true; $('btnLatarka').hidden = true; $('btnZoom').hidden = true; $('camInfo').textContent = 'Kamera wyłączona'; rysujRamki([], 1, 1); ustawWidze(''); }
+function trybFoto(msg){ $('camInfo').textContent = msg + ' Możesz zrobić zdjęcie etykiety.'; $('lblFoto').hidden = false; }
+async function petla(){
+  if(!camOn) return;
+  const v = $('video');
+  if(v.readyState >= 2 && v.videoWidth && !zajety && widok==='skan' && !document.hidden){
+    zajety = true;
+    try{
+      const sc = Math.min(1, 1600 / Math.max(v.videoWidth, v.videoHeight));
+      kan.width = Math.round(v.videoWidth*sc); kan.height = Math.round(v.videoHeight*sc);
+      kctx.drawImage(v, 0, 0, kan.width, kan.height);
+      const wyn = await dekoduj(kctx.getImageData(0, 0, kan.width, kan.height));
+      klatki++; zKlatki(wyn, kan.width, kan.height);
+    }catch(e){ ustawWidze('Błąd dekodera: '+(e && e.message ? e.message : e)); }
+    zajety = false;
+  }
+  petlaT = setTimeout(petla, 50);
+}
+function rysujRamki(an, w, h){ // obrysy rozpoznanych kodów na podglądzie (wideo wypełnia kadr: object-fit cover)
+  const c = $('nakladka'); const W = c.clientWidth, H = c.clientHeight; if(!W || !H) return;
+  const dpr = window.devicePixelRatio || 1; if(c.width !== Math.round(W*dpr)){ c.width = Math.round(W*dpr); c.height = Math.round(H*dpr); }
+  const g = c.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
+  const sk = Math.max(W/w, H/h), dx = (W - w*sk)/2, dy = (H - h*sk)/2;
+  an.forEach(a => { const p = a.r.pos; if(!p) return; g.beginPath(); [p.topLeft, p.topRight, p.bottomRight, p.bottomLeft].forEach((q,i) => { const x = dx + q.x*sk, y = dy + q.y*sk; if(i) g.lineTo(x,y); else g.moveTo(x,y); }); g.closePath(); g.lineWidth = 3; g.strokeStyle = a.prod ? '#3ddc84' : '#ffd24a'; g.stroke(); g.fillStyle = a.prod ? 'rgba(61,220,132,.18)' : 'rgba(255,210,74,.18)'; g.fill(); });
+}
+let widzeOst = '';
+function ustawWidze(msg, an, zPrzyciskiem){
+  an = an || [];
+  if(camOn) rysujRamki(an, kan.width || 1, kan.height || 1);
+  const kody = an.map(a => (a.prod ? 'produkt ' : 'kod ') + a.r.raw.slice(0, 26)).join(' · ');
+  const txt = (camOn ? '● skanuję · ' : '') + 'silnik: ' + silnik + (camOn ? ' · klatek: ' + klatki : '') + (kody ? ' · widzę: ' + kody : '');
+  $('diag').textContent = txt;
+  const klucz = (msg||'') + '|' + (zPrzyciskiem ? kodBezProduktu : '');
+  if(klucz !== widzeOst){ widzeOst = klucz; const el = $('podp'); el.hidden = !msg; el.innerHTML = msg ? '<span>'+esc(msg)+'</span>' + (zPrzyciskiem ? ' <button class="btn small" id="btnUzyjKodu">To jest kod produktu</button>' : '') : ''; const b = $('btnUzyjKodu'); if(b) b.onclick = () => { const raw = kodBezProduktu; nieznany(parseGS1(raw, '', false), 'skan'); }; }
+}
 async function zFoto(file){
-  if(!file || !window.ZXing) return;
-  toast('Odczytuję kod ze zdjęcia…');
+  if(!file) return;
+  toast('Odczytuję kody ze zdjęcia…', 6000);
   const url = URL.createObjectURL(file);
   try{
     const img = await new Promise((ok, nie) => { const i = new Image(); i.onload = () => ok(i); i.onerror = nie; i.src = url; });
-    const r = reader || new ZXing.BrowserMultiFormatReader(hints());
-    let wynik = null;
-    for(const maxW of [1400, 2200, 3200]){
+    let wyn = [], c = null;
+    for(const maxW of [1600, 2400, 3600]){
       const sc = Math.min(1, maxW / Math.max(img.naturalWidth, img.naturalHeight));
-      const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth*sc); c.height = Math.round(img.naturalHeight*sc);
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      try{ wynik = r.decodeFromCanvas(c); if(wynik) break; }catch(e){}
+      c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth*sc); c.height = Math.round(img.naturalHeight*sc);
+      const g = c.getContext('2d', {willReadFrequently:true}); g.drawImage(img, 0, 0, c.width, c.height);
+      wyn = await dekoduj(g.getImageData(0, 0, c.width, c.height)); if(wyn.length || sc===1) break;
     }
-    if(wynik) onKod(wynik.getText(), 'foto', fmt(wynik)); else badFlash('Nie odczytano kodu – zrób zdjęcie bliżej, bez odblasków');
+    if(!wyn.length) badFlash('Nie odczytano kodu – zrób zdjęcie bliżej, bez odblasków');
+    else if(pending || wyn.some(r => jestProduktem(parseGS1(r.raw, r.format, r.gs1)))) zKlatki(wyn, c.width, c.height, true);
+    else onKod(wyn[0].raw, 'foto', wyn[0].format, wyn[0].gs1);
   }catch(e){ badFlash('Błąd odczytu zdjęcia'); }
   URL.revokeObjectURL(url); $('foto').value='';
 }
@@ -683,6 +804,7 @@ function bind(){
   document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => pokaz(b.dataset.v));
   $('btnStartCam').onclick = startCam; $('btnStopCam').onclick = stopCam;
   $('foto').onchange = e => zFoto(e.target.files[0]);
+  $('btnZoom').onclick = async () => { try{ const on = !($('btnZoom').dataset.on==='1'); await track.applyConstraints({advanced:[{zoom: on ? 2 : 1}]}); $('btnZoom').dataset.on = on?'1':'0'; $('btnZoom').textContent = on ? 'Zoom 1×' : 'Zoom 2×'; }catch(e){ toast('Zoom niedostępny'); } };
   $('btnLatarka').onclick = async () => { try{ const on = !($('btnLatarka').dataset.on==='1'); await track.applyConstraints({advanced:[{torch:on}]}); $('btnLatarka').dataset.on = on?'1':'0'; }catch(e){ toast('Latarka niedostępna'); } };
   const reczny = () => { const v = $('reczny').value.trim(); if(!v) return; $('reczny').value=''; const p = parseGS1(v); if(p.gtin || p.kod_artykulu || krok()!=='PRODUKT') onKod(v, 'recznie'); else { const r = szukaj(v); if(r.length===1) ustawPending(r[0].sku, r[0].poziom, {raw:v}, 'recznie'); else otworzPicker({tytul:'Wybierz produkt', filtr:v, zrodlo:'recznie', parsed:{raw:v}}); } };
   $('btnReczny').onclick = reczny; $('reczny').addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); reczny(); } });
@@ -705,12 +827,12 @@ function bind(){
   $('ustWymagaj').onchange = e => { ST.ust.wymagaj = e.target.checked; save(); };
   $('btnAliasyCsv').onclick = () => zapiszPlik('kody_nauczone.csv', csvAliasy());
   $('btnBackup').onclick = () => zapiszPlik('skaner_kopia_'+new Date().toISOString().slice(0,10)+'.json', JSON.stringify(ST, null, 1), 'application/json');
-  $('backupPlik').onchange = e => { const f = e.target.files[0]; if(!f) return; f.text().then(t => { try{ const d = JSON.parse(t); if(!d.sesje) throw 0; confirm2('Wczytać kopię? Sesje o tych samych ID zostaną nadpisane.', () => { Object.assign(ST.sesje, d.sesje); Object.assign(ST.aliasy, d.aliasy||{}); if(d.aktualna && ST.sesje[d.aktualna]) ST.aktualna = d.aktualna; save(); render(); toast('Wczytano kopię'); }); }catch(_){ toast('To nie jest plik kopii skanera'); } }); e.target.value=''; };
+  $('backupPlik').onchange = e => { const f = e.target.files[0]; if(!f) return; f.text().then(t => { try{ const d = JSON.parse(t); if(!d.sesje) throw 0; confirm2('Wczytać kopię? Sesje o tych samych ID zostaną nadpisane.', () => { Object.assign(ST.sesje, d.sesje); Object.assign(ST.aliasy, d.aliasy||{}); Object.assign(ST.lotExp, d.lotExp||{}); if(d.aktualna && ST.sesje[d.aktualna]) ST.aktualna = d.aktualna; save(); render(); toast('Wczytano kopię'); }); }catch(_){ toast('To nie jest plik kopii skanera'); } }); e.target.value=''; };
   document.addEventListener('visibilitychange', () => { if(document.hidden && camOn) stopCam(); });
   document.addEventListener('keydown', e => { if(e.key==='Escape') zamknijModal(); });
 }
-window.SKANER = {parseGS1, parseDate, kandydaci, onKod, parsujPack, csvSkany, csvPodsum, stan:()=>ST, pending:()=>pending, krok};
-init(); bind(); render();
+window.SKANER = {parseGS1, parseDate, kandydaci, onKod, zKlatki, dekoduj, jestProduktem, parsujPack, csvSkany, csvPodsum, stan:()=>ST, pending:()=>pending, krok, blok};
+init(); initDekoder(); bind(); render(); ustawWidze('');
 if('serviceWorker' in navigator && !window.__artefakt && location.protocol.startsWith('http')){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
 </script>
 <!--APP-END-->

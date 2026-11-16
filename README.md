@@ -9,7 +9,8 @@ GS1), LOT i EXP. Tworzy listę zeskanowanych opakowań, porównuje ją z pack li
 | `index.html` | cała aplikacja (jeden plik, po polsku) |
 | `products.js` | baza produktów + indeks kodów (generowana, nie edytować ręcznie) |
 | `build_products.py` | generator `products.js` ze źródeł (arkusz Ferris, cennik Curea 2026, indeks Subiekta) |
-| `zxing.min.js` | biblioteka dekodująca kody (ZXing 0.21.3, kopia lokalna) |
+| `zxing-wasm-reader.js`, `zxing_reader.wasm` | silnik kodów ZXing C++ (WebAssembly, zxing-wasm 2.2.4) |
+| `zxing.min.js` | silnik awaryjny (zxing-js 0.21.3) |
 | `sw.js`, `manifest.webmanifest` | praca offline i ikona „Dodaj do ekranu początkowego” |
 | `artefakt.html` | ta sama aplikacja w wersji do publikacji jako artefakt claude.ai (tryb zdjęciowy) |
 | `packlista_przyklad.csv` | przykład formatu pack listy |
@@ -26,17 +27,26 @@ Kamera na żywo działa tylko pod **https://** (wymóg Safari). Opcje:
    więc aplikacja przełącza się w tryb „Zrób zdjęcie kodu” (zdjęcie → odczyt kodu). Dane sesji trafiają też do bazy
    artefaktu (kolekcja `sesje`), skąd agenci Claude mogą je czytać.
 
-## Obsługa (3 kroki na opakowanie)
-1. **Kod produktu** – EAN/UPC lub GS1-128 (PolyMem), kod QR/DataMatrix GS1 (Curea). Jeśli kod QR zawiera
-   (01) GTIN + (17) EXP + (10) LOT, pozycja zapisuje się od razu.
-2. **LOT** – kod kreskowy LOT (AI 10) albo zwykły tekst.
-3. **EXP** – kod AI 17 (RRMMDD) albo data w dowolnym zapisie (2027-12-31, 31.12.2027, 12/2027, GRU 2027).
+## Obsługa
+Kamera czyta **wszystkie kody z kadru naraz** (zielona ramka = kod produktu, żółta = inny kod, np. LOT).
+1. **Skieruj kamerę na etykietę.** Kod produktu (GS1-128 `(01)GTIN`, EAN/UPC, QR/DataMatrix GS1) i kod LOT z tej
+   samej etykiety odczytują się w jednej klatce. Kod QR z (01)+(17)+(10) zapisuje pozycję od razu.
+2. **EXP.** Na etykietach PolyMem data ważności jest tylko nadrukiem (klepsydra, np. `2031-06`), bez kodu.
+   Wybierasz miesiąc i rok **raz na LOT** – aplikacja pamięta parę REF+LOT → EXP i kolejne opakowania tego LOT-u
+   zapisuje sama. `2031-06` zapisuje się jako ostatni dzień miesiąca (`2031-06-30`).
+3. **Następne opakowanie.** Zapisany kod jest blokowany, dopóki widać go w kadrze – odsuń telefon (ok. 1 s) i najedź
+   na następną etykietę, albo dotknij „+1 takie samo”.
 
-Nieznany kod → lista produktów (najpierw sprzedawane, filtr po marce z prefiksu GS1). Po wyborze kod jest
-**zapamiętywany** (Więcej → Kody nauczone) – następny skan tego kodu rozpoznaje produkt automatycznie.
-Przyciski: „Jak poprzednio” (przepisz LOT/EXP z ostatniej pozycji), „Zapisz bez LOT/EXP”, „Cofnij ostatni”.
-Ustawienie „Ten sam produkt pod rząd” przepisuje LOT/EXP automatycznie (zeskanowany później LOT/EXP nadpisuje
-ostatnią pozycję).
+**Karton zbiorczy** (kod `(01)3…`, napis CASE): zapisuje się jako `poziom=karton` z ilością opakowań z arkusza Ferris
+(np. REF 5077: karton = 2 opak. = 30 szt.). Pack lista i sumy liczą opakowania.
+
+Nieznany kod produktu → lista produktów (najpierw sprzedawane, filtr po marce z prefiksu GS1). Po wyborze kod jest
+**zapamiętywany** (Więcej → Kody nauczone). Kod bez GTIN (np. QR z samym tekstem) nie otwiera okna sam – pojawia się
+podpowiedź z przyciskiem „To jest kod produktu”. Pasek pod podglądem pokazuje silnik, licznik klatek i widziane kody.
+Przyciski: „Jak poprzednio”, „Zapisz bez LOT/EXP”, „Cofnij ostatni”, „Zoom 2×” i „Latarka” (gdy telefon je udostępnia).
+
+Silnik kodów: ZXing C++ w WebAssembly (`zxing-wasm-reader.js` + `zxing_reader.wasm`, wersja 2.2.4, kopia lokalna).
+Poprzedni silnik (zxing-js) nie czytał etykiet PolyMem z kamery; został jako awaryjny (`zxing.min.js`).
 
 ## Pack lista
 Zakładka „Pack lista”: wklej linie `SKU lub nazwa ; LOT ; EXP ; ilość opakowań` (LOT/EXP opcjonalne), wczytaj plik
@@ -53,7 +63,7 @@ czerwone **„ZA DUŻO: jest 11, miało być 10”** z innym dźwiękiem, żół
 * JSON sesji (schowek) i kopia zapasowa wszystkich sesji (JSON).
 
 Separator `;`, UTF-8 z BOM (Excel PL), daty ISO `RRRR-MM-DD`. `poziom` = `opakowanie` (kod pudełka) /
-`sztuka` (kod saszetki) / `karton`. Na iPhonie eksport otwiera arkusz udostępniania (Pliki/iCloud, Mail, AirDrop).
+`sztuka` (kod saszetki) / `karton` (kod kartonu zbiorczego; `ilosc_opak` = liczba opakowań w kartonie). Na iPhonie eksport otwiera arkusz udostępniania (Pliki/iCloud, Mail, AirDrop).
 
 ## Baza produktów (`products.js`)
 * PolyMem/Nursicare: REF, nazwy Subiekta, UPC i GTIN-14 pudełka/saszetki/kartonu z arkusza Ferris

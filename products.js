@@ -18,6 +18,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "5x7.6",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -37,6 +38,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "9x9",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -634,6 +636,7 @@ window.PRODUKTY = {
    "szt_w_opak": 15,
    "sprzedawany": true,
    "wym_cm": "9x9",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471076066",
@@ -658,6 +661,7 @@ window.PRODUKTY = {
    "szt_w_opak": 15,
    "sprzedawany": true,
    "wym_cm": "9x9",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471017663",
@@ -682,6 +686,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "2.5x2.5",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -701,6 +706,7 @@ window.PRODUKTY = {
    "szt_w_opak": 20,
    "sprzedawany": true,
    "wym_cm": "2.5x2.5",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471002034",
@@ -725,6 +731,7 @@ window.PRODUKTY = {
    "szt_w_opak": 15,
    "sprzedawany": true,
    "wym_cm": "5x7.6",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471004052",
@@ -749,6 +756,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "4.67-5.70",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -768,6 +776,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "6.72-7.74",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -787,6 +796,7 @@ window.PRODUKTY = {
    "szt_w_opak": 6,
    "sprzedawany": true,
    "wym_cm": "6.72-7.74",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471044034",
@@ -811,6 +821,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "7.74-8.76",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -830,6 +841,7 @@ window.PRODUKTY = {
    "szt_w_opak": 6,
    "sprzedawany": true,
    "wym_cm": "7.74-8.76",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471044041",
@@ -854,6 +866,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "8.76-9.78",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -873,6 +886,7 @@ window.PRODUKTY = {
    "szt_w_opak": 6,
    "sprzedawany": true,
    "wym_cm": "5.70-6.72",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471044027",
@@ -897,6 +911,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "9x9",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -916,6 +931,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "11x11",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -935,6 +951,7 @@ window.PRODUKTY = {
    "szt_w_opak": 10,
    "sprzedawany": true,
    "wym_cm": "11x11",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471050455",
@@ -959,6 +976,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "20x20",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -978,6 +996,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": true,
    "wym_cm": "20x20",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471050882",
@@ -1002,6 +1021,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "10x10",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -1021,6 +1041,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "4.7x4.7",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -1040,6 +1061,7 @@ window.PRODUKTY = {
    "szt_w_opak": 20,
    "sprzedawany": true,
    "wym_cm": "4.7x4.7",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471050226",
@@ -1064,6 +1086,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "8x8",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -1083,6 +1106,7 @@ window.PRODUKTY = {
    "szt_w_opak": 15,
    "sprzedawany": true,
    "wym_cm": "8x8",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471050332",
@@ -1107,6 +1131,7 @@ window.PRODUKTY = {
    "szt_w_opak": 15,
    "sprzedawany": true,
    "wym_cm": "10x10",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471050448",
@@ -1131,6 +1156,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "17x19",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -1150,6 +1176,7 @@ window.PRODUKTY = {
    "szt_w_opak": 15,
    "sprzedawany": true,
    "wym_cm": "17x19",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471050776",
@@ -1174,6 +1201,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "10x32",
+   "opak_w_kartonie": 1,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -1193,6 +1221,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "10x61 Roll",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -1212,6 +1241,7 @@ window.PRODUKTY = {
    "szt_w_opak": 2,
    "sprzedawany": true,
    "wym_cm": "20x60 Roll",
+   "opak_w_kartonie": 1,
    "kody": {
     "opakowanie": [
      "20735471058246",
@@ -1236,6 +1266,7 @@ window.PRODUKTY = {
    "szt_w_opak": 15,
    "sprzedawany": true,
    "wym_cm": "7.6x5.0",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471080537",
@@ -1260,6 +1291,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "7x7",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -1279,6 +1311,7 @@ window.PRODUKTY = {
    "szt_w_opak": 15,
    "sprzedawany": true,
    "wym_cm": "7x7",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471053333",
@@ -1303,6 +1336,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": true,
    "wym_cm": "10.1x14.6",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471028683",
@@ -1327,6 +1361,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "4.67-5.70",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -1346,6 +1381,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "5.70-6.72",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -1365,6 +1401,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "6.72-7.74",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -1384,6 +1421,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "8.76-9.78",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -1403,6 +1441,7 @@ window.PRODUKTY = {
    "szt_w_opak": 6,
    "sprzedawany": true,
    "wym_cm": "7.74-8.76",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471014044",
@@ -1427,6 +1466,7 @@ window.PRODUKTY = {
    "szt_w_opak": 8,
    "sprzedawany": true,
    "wym_cm": "10x10",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471010459",
@@ -1451,6 +1491,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "20x20",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -1470,6 +1511,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": true,
    "wym_cm": "20x20",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471010886",
@@ -1494,6 +1536,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "10.8x32.0",
+   "opak_w_kartonie": 1,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -1513,6 +1556,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "10.8x10.8",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -1532,6 +1576,7 @@ window.PRODUKTY = {
    "szt_w_opak": 15,
    "sprzedawany": true,
    "wym_cm": "10.8x10.8",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471010442",
@@ -1556,6 +1601,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "17x19",
+   "opak_w_kartonie": 1,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -1575,6 +1621,7 @@ window.PRODUKTY = {
    "szt_w_opak": 12,
    "sprzedawany": true,
    "wym_cm": "10.8x32.0",
+   "opak_w_kartonie": 1,
    "kody": {
     "opakowanie": [
      "20735471011241",
@@ -1599,6 +1646,7 @@ window.PRODUKTY = {
    "szt_w_opak": 2,
    "sprzedawany": true,
    "wym_cm": "20x60 Roll",
+   "opak_w_kartonie": 1,
    "kody": {
     "opakowanie": [
      "20735471018240",
@@ -1623,6 +1671,7 @@ window.PRODUKTY = {
    "szt_w_opak": 15,
    "sprzedawany": true,
    "wym_cm": "7.6x5",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471018530",
@@ -1647,6 +1696,7 @@ window.PRODUKTY = {
    "szt_w_opak": 6,
    "sprzedawany": true,
    "wym_cm": "1x35, 3 Grams",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471018141",
@@ -1671,6 +1721,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "8x8, 4 Grams",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -1690,6 +1741,7 @@ window.PRODUKTY = {
    "szt_w_opak": 10,
    "sprzedawany": true,
    "wym_cm": "8x8, 4 Grams",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471013337",
@@ -1714,6 +1766,7 @@ window.PRODUKTY = {
    "szt_w_opak": 1,
    "sprzedawany": true,
    "wym_cm": "8x8, 4 Grams",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [],
     "sztuka": [
@@ -1733,6 +1786,7 @@ window.PRODUKTY = {
    "szt_w_opak": 10,
    "sprzedawany": true,
    "wym_cm": "8x8, 4 Grams",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471057331",
@@ -1901,6 +1955,7 @@ window.PRODUKTY = {
    "szt_w_opak": 10,
    "sprzedawany": false,
    "wym_cm": "3.1x3.8",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471002300",
@@ -1925,6 +1980,7 @@ window.PRODUKTY = {
    "szt_w_opak": 15,
    "sprzedawany": false,
    "wym_cm": "9x9",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471006063",
@@ -1949,6 +2005,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": false,
    "wym_cm": "6.85x21",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471004816",
@@ -1973,6 +2030,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": false,
    "wym_cm": "8x23.35",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471005110",
@@ -1997,6 +2055,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": false,
    "wym_cm": "9x27",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471005127",
@@ -2021,6 +2080,7 @@ window.PRODUKTY = {
    "szt_w_opak": 15,
    "sprzedawany": false,
    "wym_cm": "8x8",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471007077",
@@ -2045,6 +2105,7 @@ window.PRODUKTY = {
    "szt_w_opak": 15,
    "sprzedawany": false,
    "wym_cm": "10x10",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471010107",
@@ -2069,6 +2130,7 @@ window.PRODUKTY = {
    "szt_w_opak": 20,
    "sprzedawany": false,
    "wym_cm": "4.7x4.7",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471010220",
@@ -2093,6 +2155,7 @@ window.PRODUKTY = {
    "szt_w_opak": 10,
    "sprzedawany": false,
    "wym_cm": "10.0x17.5",
+   "opak_w_kartonie": 0,
    "kody": {
     "opakowanie": [
      "20735471010473",
@@ -2117,6 +2180,7 @@ window.PRODUKTY = {
    "szt_w_opak": 15,
    "sprzedawany": false,
    "wym_cm": "10x10",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471010503",
@@ -2141,6 +2205,7 @@ window.PRODUKTY = {
    "szt_w_opak": 15,
    "sprzedawany": false,
    "wym_cm": "17x19",
+   "opak_w_kartonie": 1,
    "kody": {
     "opakowanie": [
      "20735471010770",
@@ -2165,6 +2230,7 @@ window.PRODUKTY = {
    "szt_w_opak": 10,
    "sprzedawany": false,
    "wym_cm": "2.5x5.0",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471012439",
@@ -2189,6 +2255,7 @@ window.PRODUKTY = {
    "szt_w_opak": 4,
    "sprzedawany": false,
    "wym_cm": "10x61 Roll",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471012446",
@@ -2213,6 +2280,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": false,
    "wym_cm": "5.0x7.6",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471012453",
@@ -2237,6 +2305,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": false,
    "wym_cm": "10.1x14.6",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471012484",
@@ -2261,6 +2330,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": false,
    "wym_cm": "11.4x12.0",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471012491"
@@ -2283,6 +2353,7 @@ window.PRODUKTY = {
    "szt_w_opak": 10,
    "sprzedawany": false,
    "wym_cm": "2.5x5.0",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471012835",
@@ -2307,6 +2378,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": false,
    "wym_cm": "5.0x7.6",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471012859",
@@ -2331,6 +2403,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": false,
    "wym_cm": "10.1x14.6",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471012880",
@@ -2355,6 +2428,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": false,
    "wym_cm": "11.4x12.0",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471012897"
@@ -2377,6 +2451,7 @@ window.PRODUKTY = {
    "szt_w_opak": 14,
    "sprzedawany": false,
    "wym_cm": "2.5x7.6, 1.3 Grams",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471013313",
@@ -2401,6 +2476,7 @@ window.PRODUKTY = {
    "szt_w_opak": 6,
    "sprzedawany": false,
    "wym_cm": "4.67-5.70",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471014013",
@@ -2425,6 +2501,7 @@ window.PRODUKTY = {
    "szt_w_opak": 6,
    "sprzedawany": false,
    "wym_cm": "5.70-6.72",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471014020",
@@ -2449,6 +2526,7 @@ window.PRODUKTY = {
    "szt_w_opak": 6,
    "sprzedawany": false,
    "wym_cm": "6.72-7.74",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471014037",
@@ -2473,6 +2551,7 @@ window.PRODUKTY = {
    "szt_w_opak": 6,
    "sprzedawany": false,
    "wym_cm": "8.76-9.78",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471014051",
@@ -2497,6 +2576,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": false,
    "wym_cm": "8x23.35",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471015119",
@@ -2521,6 +2601,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": false,
    "wym_cm": "9x27",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471015126",
@@ -2545,6 +2626,7 @@ window.PRODUKTY = {
    "szt_w_opak": 10,
    "sprzedawany": false,
    "wym_cm": "11.4x12.0",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471017090",
@@ -2569,6 +2651,7 @@ window.PRODUKTY = {
    "szt_w_opak": 15,
    "sprzedawany": false,
    "wym_cm": "17x19",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471017199",
@@ -2593,6 +2676,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": false,
    "wym_cm": "20x20, 28 Grams",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471017885",
@@ -2617,6 +2701,7 @@ window.PRODUKTY = {
    "szt_w_opak": 20,
    "sprzedawany": false,
    "wym_cm": "2.5x5",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471018233",
@@ -2641,6 +2726,7 @@ window.PRODUKTY = {
    "szt_w_opak": 10,
    "sprzedawany": false,
    "wym_cm": "10.1x14.6",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471018868",
@@ -2665,6 +2751,7 @@ window.PRODUKTY = {
    "szt_w_opak": 10,
    "sprzedawany": false,
    "wym_cm": "2.5x5.0",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471024234",
@@ -2689,6 +2776,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": false,
    "wym_cm": "5.0x7.6",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471024357",
@@ -2713,6 +2801,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": false,
    "wym_cm": "11.4x12.0",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471024395"
@@ -2735,6 +2824,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": false,
    "wym_cm": "10.1x14.6",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471024685",
@@ -2759,6 +2849,7 @@ window.PRODUKTY = {
    "szt_w_opak": 10,
    "sprzedawany": false,
    "wym_cm": "2.5x5.0",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471028232",
@@ -2783,6 +2874,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": false,
    "wym_cm": "5.0x7.6",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471028355",
@@ -2807,6 +2899,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": false,
    "wym_cm": "11.4x12.0",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471028393"
@@ -2829,6 +2922,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": false,
    "wym_cm": "10.1x14.6",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471028683",
@@ -2853,6 +2947,7 @@ window.PRODUKTY = {
    "szt_w_opak": 12,
    "sprzedawany": false,
    "wym_cm": "5x26",
+   "opak_w_kartonie": 1,
    "kody": {
     "opakowanie": [
      "20735471034127",
@@ -2877,6 +2972,7 @@ window.PRODUKTY = {
    "szt_w_opak": 10,
    "sprzedawany": false,
    "wym_cm": "11.4x12.0",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471037098",
@@ -2901,6 +2997,7 @@ window.PRODUKTY = {
    "szt_w_opak": 6,
    "sprzedawany": false,
    "wym_cm": "4.67-5.70",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471044010",
@@ -2925,6 +3022,7 @@ window.PRODUKTY = {
    "szt_w_opak": 6,
    "sprzedawany": false,
    "wym_cm": "8.76-9.78",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471044058",
@@ -2949,6 +3047,7 @@ window.PRODUKTY = {
    "szt_w_opak": 10,
    "sprzedawany": false,
    "wym_cm": "7.6x7.6",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471050356",
@@ -2973,6 +3072,7 @@ window.PRODUKTY = {
    "szt_w_opak": 10,
    "sprzedawany": false,
    "wym_cm": "7.6x7.6",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471050509",
@@ -2997,6 +3097,7 @@ window.PRODUKTY = {
    "szt_w_opak": 15,
    "sprzedawany": false,
    "wym_cm": "13x13",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471050554",
@@ -3021,6 +3122,7 @@ window.PRODUKTY = {
    "szt_w_opak": 12,
    "sprzedawany": false,
    "wym_cm": "10x32",
+   "opak_w_kartonie": 1,
    "kody": {
     "opakowanie": [
      "20735471051247",
@@ -3045,6 +3147,7 @@ window.PRODUKTY = {
    "szt_w_opak": 4,
    "sprzedawany": false,
    "wym_cm": "10x61 Roll",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471052442",
@@ -3069,6 +3172,7 @@ window.PRODUKTY = {
    "szt_w_opak": 15,
    "sprzedawany": false,
    "wym_cm": "9x9",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471053357",
@@ -3093,6 +3197,7 @@ window.PRODUKTY = {
    "szt_w_opak": 12,
    "sprzedawany": false,
    "wym_cm": "8x30, 16 Grams",
+   "opak_w_kartonie": 1,
    "kody": {
     "opakowanie": [
      "20735471057126",
@@ -3117,6 +3222,7 @@ window.PRODUKTY = {
    "szt_w_opak": 14,
    "sprzedawany": false,
    "wym_cm": "2.5x7.6, 1.3 Grams",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471057317",
@@ -3141,6 +3247,7 @@ window.PRODUKTY = {
    "szt_w_opak": 10,
    "sprzedawany": false,
    "wym_cm": "8x8, 4 Grams",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471057508",
@@ -3165,6 +3272,7 @@ window.PRODUKTY = {
    "szt_w_opak": 5,
    "sprzedawany": false,
    "wym_cm": "20x20, 28 Grams",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471057881",
@@ -3189,6 +3297,7 @@ window.PRODUKTY = {
    "szt_w_opak": 20,
    "sprzedawany": false,
    "wym_cm": "2.5x2.5",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471070316",
@@ -3213,6 +3322,7 @@ window.PRODUKTY = {
    "szt_w_opak": 20,
    "sprzedawany": false,
    "wym_cm": "5x4",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471070422",
@@ -3237,6 +3347,7 @@ window.PRODUKTY = {
    "szt_w_opak": 12,
    "sprzedawany": false,
    "wym_cm": "5x20",
+   "opak_w_kartonie": 1,
    "kody": {
     "opakowanie": [
      "20735471070484",
@@ -3261,6 +3372,7 @@ window.PRODUKTY = {
    "szt_w_opak": 20,
    "sprzedawany": false,
    "wym_cm": "2.5x2.5",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471072037",
@@ -3285,6 +3397,7 @@ window.PRODUKTY = {
    "szt_w_opak": 15,
    "sprzedawany": false,
    "wym_cm": "5x8",
+   "opak_w_kartonie": 4,
    "kody": {
     "opakowanie": [
      "20735471074055",
@@ -3309,6 +3422,7 @@ window.PRODUKTY = {
    "szt_w_opak": 12,
    "sprzedawany": false,
    "wym_cm": "5x32",
+   "opak_w_kartonie": 1,
    "kody": {
     "opakowanie": [
      "20735471074123",
@@ -3333,6 +3447,7 @@ window.PRODUKTY = {
    "szt_w_opak": 20,
    "sprzedawany": false,
    "wym_cm": "2.5x5",
+   "opak_w_kartonie": 5,
    "kody": {
     "opakowanie": [
      "20735471080230",
@@ -3357,6 +3472,7 @@ window.PRODUKTY = {
    "szt_w_opak": 10,
    "sprzedawany": false,
    "wym_cm": "10.1x14.6",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471080865",
@@ -3381,6 +3497,7 @@ window.PRODUKTY = {
    "szt_w_opak": 10,
    "sprzedawany": false,
    "wym_cm": "6.3x360 Roll",
+   "opak_w_kartonie": 1,
    "kody": {
     "opakowanie": [
      "20735471091205",
@@ -3405,6 +3522,7 @@ window.PRODUKTY = {
    "szt_w_opak": 8,
    "sprzedawany": false,
    "wym_cm": "7x91 Roll",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471093360",
@@ -3429,6 +3547,7 @@ window.PRODUKTY = {
    "szt_w_opak": 4,
    "sprzedawany": false,
    "wym_cm": "12x91 Roll",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471095364",
@@ -3453,6 +3572,7 @@ window.PRODUKTY = {
    "szt_w_opak": 3,
    "sprzedawany": false,
    "wym_cm": "12x121 Roll",
+   "opak_w_kartonie": 2,
    "kody": {
     "opakowanie": [
      "20735471095487",

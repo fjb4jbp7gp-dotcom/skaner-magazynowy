@@ -19,6 +19,11 @@ CUREA_UNIT_GTIN = {"100100": "4260223630231", "100200": "4260223630248", "100300
                    "150150": "4260223630651", "200200": "4260223630255"}
 NURSICARE_PL_EAN = "2735471314001"   # EAN-13 z pliku Broszury, IFU/EAN-13Nursicare.svg
 
+def liczba(v):
+    """Komórka arkusza → int; 'n/a', puste i teksty → 0."""
+    try: return int(float(v))
+    except (TypeError, ValueError): return 0
+
 def gs1_check(digits):
     s = 0
     for i, ch in enumerate(reversed(digits)):
@@ -48,7 +53,7 @@ for r in ws.iter_rows(min_row=8, values_only=True):
     if r[0] is None: continue
     ref = str(r[0]).strip()
     rec = dict(ref=ref, nazwa_en=(r[11] or "").strip(), marka=(r[12] or "PolyMem").strip(),
-               status=(r[2] or "").strip() if isinstance(r[2], str) else "", szt=int(r[29] or 0),
+               status=(r[2] or "").strip() if isinstance(r[2], str) else "", szt=liczba(r[29]), opak_w_kartonie=liczba(r[30]),
                wym_cm=(str(r[22]).strip() if r[22] else ""),
                upc_box=r[33], upc_pouch=r[34], gtin_box=r[36], gtin_pouch=r[37], gtin_case=r[35])
     ferris[ref] = rec
@@ -123,7 +128,7 @@ for name, szt in subiekt:
         lvl = "opakowanie" if szt > 1 else "sztuka"
         sku = f"{ref}" if szt > 1 else f"{ref}-1"
         add(dict(sku=sku, marka="PolyMem", nazwa=name, nazwa_en=rec["nazwa_en"], ref=ref, poziom=lvl,
-                 szt_w_opak=szt, sprzedawany=True, wym_cm=rec.get("wym_cm", ""),
+                 szt_w_opak=szt, sprzedawany=True, wym_cm=rec.get("wym_cm", ""), opak_w_kartonie=rec.get("opak_w_kartonie", 0),
                  kody={"opakowanie": codes["opakowanie"] if lvl == "opakowanie" else [],
                        "sztuka": codes["sztuka"], "karton": codes["karton"] if lvl == "opakowanie" else []}))
     elif lname.startswith("curea"):
@@ -157,7 +162,7 @@ for ref, rec in ferris.items():
     if any(p.get("ref") == ref and p["szt_w_opak"] > 1 for p in products): continue
     codes = ferris_codes(rec)
     add(dict(sku=ref, marka=rec["marka"] or "PolyMem", nazwa=f"{rec['marka']} REF {ref} op. {rec['szt']} szt.", nazwa_en=rec["nazwa_en"],
-             ref=ref, poziom="opakowanie", szt_w_opak=rec["szt"], sprzedawany=False, wym_cm=rec.get("wym_cm", ""), kody=codes))
+             ref=ref, poziom="opakowanie", szt_w_opak=rec["szt"], sprzedawany=False, wym_cm=rec.get("wym_cm", ""), opak_w_kartonie=rec.get("opak_w_kartonie", 0), kody=codes))
 # katalog Curea 2026 – pozycje niesprzedawane
 for code, c in curea_catalog.items():
     if code in by_sku: continue
