@@ -43,8 +43,19 @@ z tym samym GTIN są łączone w jedną pozycję, więc wystarczy jedna klatka z
 to adres strony producenta – jest pomijany. EXP z pack listy porównuje się po roku i miesiącu (`2031-08` pasuje
 do `2031-08-01` z kodu).
 
-**Karton zbiorczy** (kod `(01)3…`, napis CASE): zapisuje się jako `poziom=karton` z ilością opakowań z arkusza Ferris
-(np. REF 5077: karton = 2 opak. = 30 szt.). Pack lista i sumy liczą opakowania.
+**Kartony zbiorcze** (przyjęcie dostawy). Karton zapisuje się jako produkt „op. N szt.” z `poziom=karton`
+i `ilosc_opak` = liczba opakowań w kartonie. Po rozpoznaniu produktu, LOT i EXP aplikacja pyta
+„Ile opakowań w kartonie?” i pamięta odpowiedź **osobno dla każdego produktu i LOT-u** – kolejne kartony tego
+samego LOT-u zapisują się same, a nowy LOT pyta ponownie z podpowiedzią ostatniej ilości. Podpowiedź bierze się
+kolejno z: pamięci LOT-u, kodu kartonu `(37)`, ostatniej ilości dla produktu, danych producenta (PolyMem: arkusz
+Ferris, np. REF 5077 = 2 opak.). Karton jest rozpoznawany, gdy:
+* kod jest w bazie jako karton (PolyMem `(01)3…`, napis CASE),
+* GTIN-14 kartonu to cyfra wskaźnikowa 1–8 + numer znanego opakowania, albo kod ma `(02)` GTIN zawartości,
+* nieznany kod nauczono z zaznaczeniem „To kod kartonu zbiorczego”,
+* włączony jest przełącznik **„Przyjmuję kartony zbiorcze”** na ekranie skanowania (gdy na kartonie jest ten sam
+  kod co na pudełku).
+Przycisk „To jedno opakowanie” cofa rozpoznanie kartonu. Zapamiętane ilości: Więcej → „Kartony: zapamiętane
+ilości”. Ustawienie „pytaj przy każdym kartonie” wyłącza automatyczny zapis dla znanego LOT-u.
 
 Nieznany kod produktu → lista produktów (najpierw sprzedawane, filtr po marce z prefiksu GS1). Po wyborze kod jest
 **zapamiętywany** (Więcej → Kody nauczone). Kod bez GTIN (np. QR z samym tekstem) nie otwiera okna sam – pojawia się

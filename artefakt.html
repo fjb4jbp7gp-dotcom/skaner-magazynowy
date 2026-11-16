@@ -147,6 +147,7 @@ kbd{font-family:var(--mono);background:var(--accent-soft);border-radius:4px;padd
       <button class="btn" id="btnZListy">Wybierz z listy</button>
       <button class="btn" id="btnCofnij">Cofnij ostatni</button>
     </div>
+    <label style="display:flex;gap:10px;align-items:center;min-height:44px;margin-top:6px"><input type="checkbox" id="ustKartony" style="width:22px;height:22px"> Przyjmuję kartony zbiorcze (pytaj o liczbę opakowań)</label>
   </div>
   <div class="card ostatni" id="ostatni"></div>
 </section>
@@ -195,7 +196,9 @@ kbd{font-family:var(--mono);background:var(--accent-soft);border-radius:4px;padd
     <label style="display:flex;gap:10px;align-items:center;min-height:44px"><input type="checkbox" id="ustAuto" style="width:22px;height:22px"> Ten sam produkt pod rząd: przepisz LOT/EXP z poprzedniego (bez skanowania)</label>
     <label style="display:flex;gap:10px;align-items:center;min-height:44px"><input type="checkbox" id="ustDzwiek" style="width:22px;height:22px"> Dźwięk przy skanie</label>
     <label style="display:flex;gap:10px;align-items:center;min-height:44px"><input type="checkbox" id="ustWymagaj" style="width:22px;height:22px"> Wymagaj LOT i EXP (bez „Pomiń”)</label>
+    <label style="display:flex;gap:10px;align-items:center;min-height:44px"><input type="checkbox" id="ustPytajKarton" style="width:22px;height:22px"> Kartony: pytaj o liczbę opakowań przy każdym kartonie (nie tylko raz na LOT)</label>
   </div>
+  <div class="card"><h2>Kartony: zapamiętane ilości (produkt i LOT → opakowań)</h2><div id="kartonyLista" class="small"></div></div>
   <div class="card"><h2>Kody nauczone (nieznane kody → produkt)</h2><div id="aliasyLista" class="small"></div>
     <div class="row" style="margin-top:8px"><button class="btn small" id="btnAliasyCsv">Eksport kody_nauczone.csv</button></div>
   </div>
@@ -218,7 +221,7 @@ kbd{font-family:var(--mono);background:var(--accent-soft);border-radius:4px;padd
 <script src="zxing-wasm-reader.js"></script>
 <script>
 /* ======================= DANE ======================= */
-const WERSJA = '4';   // ta sama wartość co w pliku wersja.txt
+const WERSJA = '5';   // ta sama wartość co w pliku wersja.txt
 const DB = window.PRODUKTY || {produkty:[], indeks_kodow:{}};
 const PROD = {}; DB.produkty.forEach(p => PROD[p.sku] = p);
 const KEY = 'skaner-sp.v1';
@@ -231,8 +234,10 @@ function load(){ try{ const t = localStorage.getItem(KEY); if(t) return JSON.par
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(ST)); }catch(e){ toast('Nie udało się zapisać (pamięć przeglądarki)'); } syncDb(); }
 function init(){
   ST = load() || {sesje:{}, aktualna:null, aliasy:{}, lotExp:{}, ust:{auto:false, dzwiek:true, wymagaj:false}};
-  ST.ust = Object.assign({auto:false, dzwiek:true, wymagaj:false}, ST.ust||{});
-  ST.lotExp = ST.lotExp || {};   // pamięć: REF|LOT → EXP (data z nadruku podawana raz na LOT)
+  ST.ust = Object.assign({auto:false, dzwiek:true, wymagaj:false, kartony:false, pytajKarton:false}, ST.ust||{});
+  ST.lotExp = ST.lotExp || {};
+  ST.kartonLot = ST.kartonLot || {};   // REF|LOT → liczba opakowań w kartonie (bywa różna między LOT-ami)
+  ST.kartonSku = ST.kartonSku || {};   // SKU → ostatnio podana liczba opakowań w kartonie (podpowiedź dla nowego LOT-u)   // pamięć: REF|LOT → EXP (data z nadruku podawana raz na LOT)
   if(!ST.aktualna || !ST.sesje[ST.aktualna]) nowaSesja(domyslnaNazwa());
 }
 function domyslnaNazwa(){ const d=new Date(); return 'Sesja '+d.toISOString().slice(0,10)+' '+d.toTimeString().slice(0,5); }
@@ -251,6 +256,7 @@ function ai17toISO(v){ // YYMMDD → RRRR-MM-DD; DD=00 → ostatni dzień miesi�
   return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
 }
 function gs1ok(d){ d=String(d); if(!/^\d{8,18}$/.test(d)) return false; let s=0; for(let i=d.length-2,w=3;i>=0;i--,w=4-w) s+=+d[i]*w; return (10-s%10)%10===+d[d.length-1]; }
+function gs1cd(d){ let s=0; for(let i=d.length-1,w=3;i>=0;i--,w=4-w) s+=+d[i]*w; return String((10-s%10)%10); }   // cyfra kontrolna GS1
 function gs1Sekwencja(s){ // ciąg elementów GS1 bez nawiasów → {ai: wartość} albo null
   const ais = {}; let i = 0, guard = 0;
   while(i < s.length && guard++ < 40){
@@ -295,6 +301,8 @@ function parseGS1(rawIn, format, gs1){
   if(!out.gs1 && /^\d{8}$|^\d{12,14}$/.test(s) && gs1ok(s)) out.ais['01'] = s;   // goły GTIN (EAN/UPC/ITF-14)
   if(out.ais['01']) out.gtin = out.ais['01'];
   if(out.ais['02'] && !out.gtin) out.gtin = out.ais['02'];
+  if(out.ais['02']) out.gtinZawartosci = out.ais['02'];                                   // karton: GTIN opakowań w środku
+  if(out.ais['37'] && /^\d{1,6}$/.test(out.ais['37'])) out.ilosc37 = parseInt(out.ais['37'], 10);   // karton: liczba opakowań w środku
   if(out.ais['10']) out.lot = out.ais['10'].trim();
   if(out.ais['21']) out.serial = out.ais['21'].trim();
   if(out.ais['17']) out.exp = ai17toISO(out.ais['17']) || null;
@@ -325,8 +333,15 @@ function kandydaci(parsed){
   const push = (sku, poziom, zrodlo) => { if(PROD[sku] && !res.some(r=>r.sku===sku)) res.push({sku, poziom, zrodlo}); };
   if(parsed.gtin){
     const k = norm(parsed.gtin);
+    const tylko02 = parsed.ais && parsed.ais['02'] && !parsed.ais['01'];          // (02) = GTIN opakowań w kartonie
     if(ST.aliasy[k]) push(ST.aliasy[k].sku, ST.aliasy[k].poziom, 'nauczony');
-    (DB.indeks_kodow[k]||[]).forEach(x => push(x.sku, x.poziom, 'baza'));
+    (DB.indeks_kodow[k]||[]).forEach(x => push(x.sku, tylko02 && x.poziom==='opakowanie' ? 'karton' : x.poziom, 'baza'));
+    const zOpak = (kod, skad) => { const k2 = norm(kod); const a = ST.aliasy[k2]; if(a && a.poziom==='opakowanie') push(a.sku, 'karton', skad); (DB.indeks_kodow[k2]||[]).filter(x => x.poziom==='opakowanie').forEach(x => push(x.sku, 'karton', skad)); };
+    if(!res.length && parsed.gtinZawartosci) zOpak(parsed.gtinZawartosci, 'karton (zawartość)');
+    if(!res.length){ // GTIN-14 kartonu = cyfra wskaźnikowa 1–8 + numer opakowania znanego z bazy
+      const g = String(parsed.gtin).replace(/\D/g,'').padStart(14,'0');
+      if(/^[1-8]/.test(g)){ const b = '0' + g.slice(1,13); zOpak(b + gs1cd(b), 'karton (GTIN-14)'); }
+    }
   }
   if(parsed.kod_artykulu){
     const ka = parsed.kod_artykulu;
@@ -348,7 +363,7 @@ function szukaj(q){
 /* ======================= STAN SKANOWANIA ======================= */
 let pending = null;   // {sku, poziom, gtin, lot, exp, raw, zrodlo}
 const blok = {}, ostatnioWidziane = {};   // kod zapisany i wciąż w kadrze → nie licz drugi raz, dopóki nie zniknie na 1,2 s
-function krok(){ if(!pending) return 'PRODUKT'; if(!pending.lot && !pending.lotPominiety) return 'LOT'; if(!pending.exp && !pending.expPominiety) return 'EXP'; return 'GOTOWE'; }
+function krok(){ if(!pending) return 'PRODUKT'; if(!pending.lot && !pending.lotPominiety) return 'LOT'; if(!pending.exp && !pending.expPominiety) return 'EXP'; if(pending.poziom==='karton' && !pending.iloscOk) return 'ILOSC'; return 'GOTOWE'; }
 const kluczLot = (sku, lot) => ((PROD[sku] && PROD[sku].ref) || sku) + '|' + String(lot||'').toUpperCase();
 function jestProduktem(p){
   if(p.gs1 && p.gtin) return true;
@@ -357,6 +372,20 @@ function jestProduktem(p){
   return kandydaci(p).length > 0;   // goły numer lub tekst tylko wtedy, gdy znamy go z bazy / kodów nauczonych
 }
 function expZPamieci(){ if(pending && pending.lot && !pending.exp){ const e = ST.lotExp[kluczLot(pending.sku, pending.lot)]; if(e){ pending.exp = e; pending.expZPamieci = true; } } }
+function podpowiedzIlosci(){ // skąd wziąć domyślną liczbę opakowań w kartonie
+  const p = PROD[pending.sku]; const kl = kluczLot(pending.sku, pending.lot);
+  if(pending.lot && ST.kartonLot[kl]) return {n:ST.kartonLot[kl], skad:'ostatnio dla LOT '+pending.lot};
+  if(pending.ilosc37) return {n:pending.ilosc37, skad:'z kodu kartonu'};
+  if(ST.kartonSku[p.sku]) return {n:ST.kartonSku[p.sku], skad:'ostatnio dla tego produktu (inny LOT)'};
+  if(p.opak_w_kartonie > 0) return {n:p.opak_w_kartonie, skad:'z danych producenta'};
+  return {n:'', skad:''};
+}
+function dalej(zrodlo){ // po każdej zmianie rozpoczętej pozycji: uzupełnij z pamięci i zapisz, gdy komplet
+  if(!pending) return;
+  expZPamieci();
+  if(krok()==='ILOSC' && !ST.ust.pytajKarton && pending.lot){ const z = ST.kartonLot[kluczLot(pending.sku, pending.lot)]; if(z){ pending.ilosc = z; pending.iloscOk = true; } }   // ten sam LOT → ta sama ilość
+  if(krok()==='GOTOWE') zatwierdz(zrodlo || pending.zrodlo); else { okFlash(); render(); }
+}
 function zastosujLotExp(p, zrodlo){ // kod LOT / EXP dla rozpoczętej pozycji; true = coś uzupełniono
   if(!pending || p.raw===pending.raw || toLink(p.raw)) return false;
   const k = krok(); let zm = false;
@@ -366,7 +395,7 @@ function zastosujLotExp(p, zrodlo){ // kod LOT / EXP dla rozpoczętej pozycji; t
     if(k==='LOT'){ const d = parseDate(txt, true); if(d){ pending.exp = d; zm = true; } else if(txt.length<=30){ pending.lot = txt.replace(/^(LOT[.:]?|\(10\))\s*/i,'').trim(); zm = true; } }
     else if(k==='EXP'){ const d = parseDate(txt); if(d && txt.toUpperCase()!==String(pending.lot).toUpperCase()){ pending.exp = d; zm = true; } }
   }
-  if(zm){ expZPamieci(); if(krok()==='GOTOWE') zatwierdz(zrodlo||'skan'); else { okFlash(); render(); } }
+  if(zm) dalej(zrodlo||'skan');
   return zm;
 }
 // Wpis ręczny, zdjęcie, testy: jeden kod naraz
@@ -376,6 +405,7 @@ function onKod(raw, zrodlo, format, gs1){
   if(pending){
     if(!(jestProduktem(p) && raw!==pending.raw)){ if(!zastosujLotExp(p, zrodlo) && raw!==pending.raw) toast('Ten kod nie pasuje do kroku: '+krok()); return; }
     if(ST.ust.wymagaj){ blad('Najpierw LOT/EXP dla: '+PROD[pending.sku].nazwa); return; }
+    if(pending.poziom==='karton' && !pending.iloscOk){ blad('Najpierw podaj liczbę opakowań w kartonie: '+PROD[pending.sku].nazwa); return; }
     pending.lotPominiety = pending.expPominiety = true; zatwierdz(pending.zrodlo);
   }
   if(jestProduktem(p)) return produktZeSkanu(p, zrodlo);
@@ -447,24 +477,25 @@ function nieznany(p, zrodlo){
 }
 function ustawPending(sku, poziom, p, zrodlo){
   const prod = PROD[sku];
-  pending = {sku, poziom: poziom||prod.poziom, gtin: p.gtin||'', lot: p.lot||'', exp: p.exp||'', raw: p.raw||'', zrodlo: zrodlo||'skan'};
+  let pz = poziom||prod.poziom; if(ST.ust.kartony && pz==='opakowanie') pz = 'karton';   // tryb przyjęcia kartonów
+  pending = {sku, poziom: pz, gtin: p.gtin||'', lot: p.lot||'', exp: p.exp||'', raw: p.raw||'', zrodlo: zrodlo||'skan', ilosc37: p.ilosc37||0};
   const s = S(); const last = s.skany[s.skany.length-1];
   if(ST.ust.auto && last && last.sku===sku && (last.lot||last.exp)){ if(!pending.lot) pending.lot=last.lot; if(!pending.exp) pending.exp=last.exp; }
-  expZPamieci();
-  if(krok()==='GOTOWE') zatwierdz(zrodlo); else { okFlash(); render(); }
+  dalej(zrodlo);
 }
 function zatwierdz(zrodlo){
   if(!pending) return;
   const prod = PROD[pending.sku]; const s = S();
-  const ilosc = (pending.poziom==='karton' && prod.opak_w_kartonie>1) ? prod.opak_w_kartonie : 1;   // karton zbiorczy = N opakowań
+  const ilosc = pending.poziom==='karton' ? Math.max(1, parseInt(pending.ilosc, 10) || prod.opak_w_kartonie || 1) : 1;   // karton zbiorczy = N opakowań
   const rec = {id:uid(), czas:teraz(), sku:prod.sku, nazwa:prod.nazwa, marka:prod.marka, poziom:pending.poziom, szt_w_opak:prod.szt_w_opak,
                ilosc, lot:(pending.lot||'').toUpperCase(), exp:pending.exp||'', gtin:pending.gtin||'', zrodlo:zrodlo||pending.zrodlo||'skan', kod_surowy:pending.raw||''};
   s.skany.push(rec);
   if(rec.lot && rec.exp) ST.lotExp[kluczLot(rec.sku, rec.lot)] = rec.exp;
+  if(rec.poziom==='karton'){ ST.kartonSku[rec.sku] = ilosc; if(rec.lot) ST.kartonLot[kluczLot(rec.sku, rec.lot)] = ilosc; }
   { const kb = kluczBlok(pending); blok[kb] = (pending.lot||'').toUpperCase(); ostatnioWidziane[kb] = Date.now(); }   // ta sama etykieta w kadrze nie liczy się drugi raz
   pending = null; save();
   const st = sprawdzPack(rec);
-  if(st==='za_duzo') badFlash('ZA DUŻO: '+prod.nazwa); else okFlash('Zapisano: '+prod.nazwa+(ilosc>1?' (karton = '+ilosc+' opak.)':''));
+  if(st==='za_duzo') badFlash('ZA DUŻO: '+prod.nazwa); else okFlash('Zapisano: '+prod.nazwa+(rec.poziom==='karton'?' (karton = '+ilosc+' opak.)':''));
   render();
 }
 function sprawdzPack(rec){ // status pozycji pack listy po dodaniu skanu
@@ -489,7 +520,8 @@ function otworzPicker(opt){
     ${opt.parsed ? `<div class="small mono muted" style="word-break:break-all">kod: ${esc(opt.parsed.raw)}${opt.parsed.lot?' · LOT '+esc(opt.parsed.lot):''}${opt.parsed.exp?' · EXP '+esc(opt.parsed.exp):''}</div>`:''}
     ${opt.ilosc ? `<div class="row" style="margin-top:6px"><label class="grow">Ilość opakowań <input type="number" id="pickIlosc" value="1" min="1" inputmode="numeric"></label></div>`:''}
     <input type="text" id="pickQ" placeholder="Szukaj: nazwa, REF, rozmiar…" value="${esc(opt.filtr||'')}" autocomplete="off" style="margin-top:8px">
-    ${zap ? `<label class="small" style="display:flex;gap:8px;align-items:center;margin-top:6px"><input type="checkbox" id="pickZap" checked style="width:20px;height:20px"> Zapamiętaj ten kod dla wybranego produktu</label>`:''}
+    ${zap ? `<label class="small" style="display:flex;gap:8px;align-items:center;margin-top:6px"><input type="checkbox" id="pickZap" checked style="width:20px;height:20px"> Zapamiętaj ten kod dla wybranego produktu</label>
+    <label class="small" style="display:flex;gap:8px;align-items:center;margin-top:6px"><input type="checkbox" id="pickKarton" ${ST.ust.kartony ? 'checked' : ''} style="width:20px;height:20px"> To kod kartonu zbiorczego (w środku kilka opakowań)</label>`:''}
     <div class="lista" id="pickLista"></div>
     <div class="row" style="margin-top:8px"><button class="btn" id="pickAnuluj">Anuluj</button></div>
   </div>`;
@@ -512,12 +544,14 @@ function otworzPicker(opt){
     if(!lista.length) L.innerHTML = '<div class="muted" style="padding:12px 4px">Brak wyników</div>';
   };
   const wybierz = (p, poziom) => {
+    const kartonTak = !!(box.querySelector('#pickKarton') && box.querySelector('#pickKarton').checked);
+    const pz = kartonTak ? 'karton' : (poziom || 'opakowanie');
     const zapTak = zap && box.querySelector('#pickZap') && box.querySelector('#pickZap').checked;
-    if(zapTak){ const k = opt.parsed.gtin ? norm(opt.parsed.gtin) : 'txt:'+opt.parsed.raw.trim().toUpperCase(); ST.aliasy[k] = {sku:p.sku, poziom:poziom||'opakowanie', kod:opt.parsed.gtin||opt.parsed.raw, kiedy:teraz()}; save(); toast('Zapamiętano kod dla: '+p.nazwa); }
+    if(zapTak){ const k = opt.parsed.gtin ? norm(opt.parsed.gtin) : 'txt:'+opt.parsed.raw.trim().toUpperCase(); ST.aliasy[k] = {sku:p.sku, poziom:pz, kod:opt.parsed.gtin||opt.parsed.raw, kiedy:teraz()}; save(); toast('Zapamiętano kod dla: '+p.nazwa); }
     const ilosc = opt.ilosc ? Math.max(1, +(box.querySelector('#pickIlosc').value||1)) : 1;
     zamknijModal();
     if(opt.onWybor) return opt.onWybor(p, ilosc);
-    ustawPending(p.sku, poziom, opt.parsed || {raw:'', gtin:''}, opt.zrodlo || 'recznie');
+    ustawPending(p.sku, kartonTak ? 'karton' : poziom, opt.parsed || {raw:'', gtin:''}, opt.zrodlo || 'recznie');
   };
   q.oninput = rysuj; rysuj();
   box.querySelector('#pickAnuluj').onclick = zamknijModal;
@@ -550,7 +584,7 @@ let widok = 'skan';
 function pokaz(v){ widok=v; ['skan','lista','pack','wiecej'].forEach(x => { $('v-'+x).hidden = x!==v; }); document.querySelectorAll('nav.tabs button').forEach(b => { if(b.dataset.v===v) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); }); render(); }
 function render(){
   const s = S();
-  $('btnSesja').textContent = s.nazwa;
+  $('btnSesja').textContent = s.nazwa; $('ustKartony').checked = !!ST.ust.kartony;
   renderStan(); renderOstatni(); renderPackAlert();
   const n = s.skany.reduce((a,r)=>a+r.ilosc,0); const b=$('badgeLista'); b.hidden = !n; b.textContent = n;
   if(widok==='lista') renderLista();
@@ -560,27 +594,42 @@ function render(){
 let krokOst = '';
 function renderStan(){
   const el = $('stan'), ak = $('stanAkcje'); const k = krok();
-  el.className = 'card stan ' + (k==='LOT'?'lot':k==='EXP'?'exp':'');
+  el.className = 'card stan ' + (k==='LOT'?'lot':(k==='EXP'||k==='ILOSC')?'exp':'');
   $('cam').classList.toggle('maly', !!pending);
   if(!pending){
-    el.innerHTML = `<div class="krok">Krok 1 z 3</div><div class="tytul">Skieruj kamerę na etykietę</div><div class="muted small">Kod produktu i kod LOT z tej samej etykiety odczytują się razem (zielona i żółta ramka). Datę EXP z nadruku podajesz raz na LOT, potem jest podpowiadana.</div>`;
+    el.innerHTML = `<div class="krok">Krok 1 z 3${ST.ust.kartony ? ' · tryb kartonów' : ''}</div><div class="tytul">Skieruj kamerę na etykietę</div><div class="muted small">${ST.ust.kartony ? 'Tryb kartonów: każdy skan to karton zbiorczy – zapytam o liczbę opakowań w środku (raz na LOT).' : 'Kod produktu i kod LOT z tej samej etykiety odczytują się razem (zielona i żółta ramka). Datę EXP z nadruku podajesz raz na LOT, potem jest podpowiadana.'}</div>`;
     ak.innerHTML = ''; krokOst = ''; $('cam').classList.remove('maly'); return;
   }
-  const p = PROD[pending.sku];
-  const pola = `<div class="pola"><span class="muted">Produkt</span><b>${esc(p.sku)}</b><span class="muted">Opak.</span><b>${p.szt_w_opak} szt.${pending.poziom==='karton' ? ' · karton zbiorczy'+(p.opak_w_kartonie>1 ? ' = '+p.opak_w_kartonie+' opak.' : '') : pending.poziom!=='opakowanie' ? ' (kod '+esc(pending.poziom)+')':''}</b><span class="muted">LOT</span><b>${esc(pending.lot||'—')}</b><span class="muted">EXP</span><b>${esc(pending.exp||'—')}</b></div>`;
+  const p = PROD[pending.sku]; const kart = pending.poziom==='karton';
+  const pola = `<div class="pola"><span class="muted">Produkt</span><b>${esc(p.sku)}</b><span class="muted">Opak.</span><b>${p.szt_w_opak} szt.${kart ? ' · karton zbiorczy' : pending.poziom!=='opakowanie' ? ' (kod '+esc(pending.poziom)+')':''}</b><span class="muted">LOT</span><b>${esc(pending.lot||'—')}</b><span class="muted">EXP</span><b>${esc(pending.exp||'—')}</b></div>`;
+  if(k==='ILOSC'){ // karton zbiorczy: ile opakowań w środku
+    const podp = podpowiedzIlosci();
+    el.innerHTML = `<div class="krok">Karton zbiorczy · ${esc(p.marka)}</div><div class="tytul">Ile opakowań w kartonie?</div><div>${esc(p.nazwa)}</div>${pola}<div class="muted small">${podp.skad ? 'Podpowiedź: '+esc(podp.skad)+'. ' : ''}${pending.lot ? 'Ilość zapamiętam dla tego LOT-u – kolejne kartony zapiszą się same.' : 'Bez LOT-u zapytam przy każdym kartonie.'}</div>`;
+    ak.innerHTML = `<button class="btn" id="ilMinus" style="flex:0 0 60px;font-size:24px">−</button><input type="number" id="ilKarton" inputmode="numeric" min="1" value="${esc(podp.n)}" placeholder="opak." aria-label="Liczba opakowań w kartonie" style="flex:1 1 90px;width:auto;text-align:center;font-size:24px;font-weight:700"><button class="btn" id="ilPlus" style="flex:0 0 60px;font-size:24px">+</button>
+      <button class="btn primary" id="akIlOk" style="flex:1 1 100%">Zapisz karton</button>
+      <button class="btn" id="akNieKarton">To jedno opakowanie</button><button class="btn danger" id="akAnuluj">Anuluj</button>`;
+    const pole = $('ilKarton'); const zmien = d => { pole.value = Math.max(1, (parseInt(pole.value, 10) || 0) + d); };
+    $('ilMinus').onclick = () => zmien(-1); $('ilPlus').onclick = () => zmien(1);
+    const ok = () => { const n = parseInt(pole.value, 10); if(!(n > 0)) return toast('Podaj liczbę opakowań w kartonie'); pending.ilosc = n; pending.iloscOk = true; dalej(pending.zrodlo); };
+    $('akIlOk').onclick = ok; pole.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); ok(); } });
+    $('akNieKarton').onclick = () => { const a = pending.gtin && ST.aliasy[norm(pending.gtin)]; if(a && a.poziom==='karton'){ a.poziom = 'opakowanie'; save(); } pending.poziom = 'opakowanie'; dalej(pending.zrodlo); };
+    $('akAnuluj').onclick = () => { pending=null; render(); };
+    if(krokOst!=='ILOSC'){ try{ $('stanAkcje').scrollIntoView({block:'nearest', behavior:'smooth'}); }catch(e){} } krokOst = k;
+    return;
+  }
   el.innerHTML = `<div class="krok">Krok ${k==='LOT'?'2':'3'} z 3 · ${esc(p.marka)}</div><div class="tytul">${k==='LOT'?'Zeskanuj kod LOT':'Podaj datę ważności (EXP)'}</div>${k==='EXP'?'<div class="muted small">EXP jest na etykiecie nadrukiem przy klepsydrze (np. 2031-06). Wybierz miesiąc i rok poniżej.</div>':''}<div>${esc(p.nazwa)}</div>${pola}`;
   const s = S(); const last = s.skany[s.skany.length-1];
   ak.innerHTML = `
     ${k==='EXP' ? '<input type="month" id="expMies" aria-label="EXP: miesiąc i rok"><button class="btn primary" id="akExpOk">Zapisz EXP</button>' : ''}
     <button class="btn" id="akWpisz">Wpisz ${k==='LOT'?'LOT':'pełną datę'}</button>
     ${last && (last.lot||last.exp) ? `<button class="btn" id="akJakPoprz">Jak poprzednio<br><span class="small mono">${esc(last.lot||'—')} · ${esc(last.exp||'—')}</span></button>`:''}
-    ${ST.ust.wymagaj ? '' : `<button class="btn ok" id="akPomin">Zapisz bez ${k==='LOT'?'LOT/EXP':'EXP'}</button>`}
+    ${ST.ust.wymagaj ? '' : `<button class="btn ok" id="akPomin">${kart ? 'Dalej' : 'Zapisz'} bez ${k==='LOT'?'LOT/EXP':'EXP'}</button>`}
     <button class="btn danger" id="akAnuluj">Anuluj</button>`;
-  $('akWpisz').onclick = () => prompt2(k==='LOT'?'LOT':'EXP (RRRR-MM-DD)', '', v => { if(!v.trim()) return; if(k==='LOT') pending.lot=v.trim(); else pending.exp = parseDate(v)||v.trim(); if(krok()==='GOTOWE') zatwierdz('recznie'); else render(); });
+  $('akWpisz').onclick = () => prompt2(k==='LOT'?'LOT':'EXP (RRRR-MM-DD)', '', v => { if(!v.trim()) return; if(k==='LOT') pending.lot=v.trim(); else pending.exp = parseDate(v)||v.trim(); dalej('recznie'); });
   if(k==='EXP' && krokOst!=='EXP'){ try{ $('stanAkcje').scrollIntoView({block:'nearest', behavior:'smooth'}); }catch(e){} } krokOst = k;
-  const eo = $('akExpOk'); if(eo) eo.onclick = () => { const v = $('expMies').value; const d = parseDate(v); if(!d) return toast('Wybierz miesiąc i rok EXP'); pending.exp = d; zatwierdz(pending.zrodlo); };
-  const jp = $('akJakPoprz'); if(jp) jp.onclick = () => { pending.lot = pending.lot||last.lot; pending.exp = pending.exp||last.exp; if(krok()==='GOTOWE') zatwierdz('skan'); else render(); };
-  const pm = $('akPomin'); if(pm) pm.onclick = () => { pending.lotPominiety = true; pending.expPominiety = true; zatwierdz(pending.zrodlo); };
+  const eo = $('akExpOk'); if(eo) eo.onclick = () => { const v = $('expMies').value; const d = parseDate(v); if(!d) return toast('Wybierz miesiąc i rok EXP'); pending.exp = d; dalej(pending.zrodlo); };
+  const jp = $('akJakPoprz'); if(jp) jp.onclick = () => { pending.lot = pending.lot||last.lot; pending.exp = pending.exp||last.exp; dalej('skan'); };
+  const pm = $('akPomin'); if(pm) pm.onclick = () => { pending.lotPominiety = true; pending.expPominiety = true; dalej(pending.zrodlo); };
   $('akAnuluj').onclick = () => { pending=null; render(); };
 }
 function renderOstatni(){
@@ -588,7 +637,7 @@ function renderOstatni(){
   const n = s.skany.reduce((a,r)=>a+r.ilosc,0);
   if(!last){ el.innerHTML = `<div class="n">0</div><div><b>Brak skanów w tej sesji</b><div class="small muted">Każde zeskanowane opakowanie = 1 pozycja.</div></div>`; return; }
   const g = s.skany.filter(r => r.sku===last.sku && r.lot===last.lot && r.exp===last.exp).reduce((a,r)=>a+r.ilosc,0);
-  el.innerHTML = `<div class="n">${n}</div><div style="min-width:0"><b>Ostatni: ${esc(last.nazwa)}</b><div class="small mono muted">LOT ${esc(last.lot||'—')} · EXP ${esc(last.exp||'—')} · ten LOT: ${g} opak. · ${esc(last.czas.slice(11))}</div></div><button class="btn small" id="btnPlus1" style="flex:0 0 auto">+1 takie samo</button>`;
+  el.innerHTML = `<div class="n">${n}</div><div style="min-width:0"><b>Ostatni: ${esc(last.nazwa)}</b><div class="small mono muted">LOT ${esc(last.lot||'—')} · EXP ${esc(last.exp||'—')} · ${last.poziom==='karton' ? 'karton '+last.ilosc+' opak. · ' : ''}ten LOT: ${g} opak. · ${esc(last.czas.slice(11))}</div></div><button class="btn small" id="btnPlus1" style="flex:0 0 auto">+1 takie samo</button>`;
   $('btnPlus1').onclick = () => { const s2 = S(); const r = s2.skany[s2.skany.length-1]; if(!r) return; const kopia = Object.assign({}, r, {id:uid(), czas:teraz(), zrodlo:'recznie', kod_surowy:''}); s2.skany.push(kopia); save(); if(sprawdzPack(kopia)==='za_duzo') badFlash('ZA DUŻO: '+r.nazwa); else okFlash(); render(); };
 }
 function renderPackAlert(){
@@ -640,7 +689,10 @@ function renderWiecej(){
   const el = $('sesjeLista');
   el.innerHTML = Object.values(ST.sesje).sort((a,b)=>b.utworzono.localeCompare(a.utworzono)).map(s => `<label style="display:flex;gap:10px;align-items:center;min-height:44px;border-bottom:1px solid var(--line)"><input type="radio" name="ses" value="${s.id}" ${s.id===ST.aktualna?'checked':''} style="width:20px;height:20px"><span class="grow">${esc(s.nazwa)}<span class="small muted"> · ${s.skany.reduce((a,r)=>a+r.ilosc,0)} opak. · ${esc(s.utworzono.slice(0,16))}</span></span></label>`).join('');
   el.querySelectorAll('input[name=ses]').forEach(r => r.onchange = () => { ST.aktualna = r.value; pending=null; save(); render(); });
-  $('ustAuto').checked = ST.ust.auto; $('ustDzwiek').checked = ST.ust.dzwiek; $('ustWymagaj').checked = ST.ust.wymagaj;
+  $('ustAuto').checked = ST.ust.auto; $('ustDzwiek').checked = ST.ust.dzwiek; $('ustWymagaj').checked = ST.ust.wymagaj; $('ustPytajKarton').checked = ST.ust.pytajKarton;
+  const kl = Object.entries(ST.kartonLot);
+  $('kartonyLista').innerHTML = kl.length ? kl.map(([k, n]) => { const [ref, lot] = k.split('|'); const pr = PROD[ref] || DB.produkty.find(x => x.ref===ref && x.szt_w_opak>1) || {nazwa:ref}; return `<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)"><span class="grow">${esc(pr.nazwa)} · LOT <span class="mono">${esc(lot||'—')}</span> → <b>${n} opak.</b></span><button class="btn small" data-k="${esc(k)}">Usuń</button></div>`; }).join('') : '<div class="muted">Brak. Po przyjęciu pierwszego kartonu ilość zostanie tu zapamiętana dla jego LOT-u.</div>';
+  $('kartonyLista').querySelectorAll('button').forEach(b => b.onclick = () => { delete ST.kartonLot[b.dataset.k]; save(); render(); });
   const al = Object.entries(ST.aliasy);
   $('aliasyLista').innerHTML = al.length ? al.map(([k,a]) => `<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)"><span class="grow"><span class="mono">${esc(a.kod||k)}</span> → ${esc(PROD[a.sku]?PROD[a.sku].nazwa:a.sku)}</span><button class="btn small" data-k="${esc(k)}">Usuń</button></div>`).join('') : '<div class="muted">Brak. Gdy zeskanujesz nieznany kod i wybierzesz produkt, kod zostanie tu zapamiętany.</div>';
   $('aliasyLista').querySelectorAll('button').forEach(b => b.onclick = () => { delete ST.aliasy[b.dataset.k]; save(); render(); });
@@ -871,9 +923,11 @@ function bind(){
   $('ustAuto').onchange = e => { ST.ust.auto = e.target.checked; save(); };
   $('ustDzwiek').onchange = e => { ST.ust.dzwiek = e.target.checked; save(); };
   $('ustWymagaj').onchange = e => { ST.ust.wymagaj = e.target.checked; save(); };
+  $('ustPytajKarton').onchange = e => { ST.ust.pytajKarton = e.target.checked; save(); };
+  $('ustKartony').onchange = e => { ST.ust.kartony = e.target.checked; save(); render(); };
   $('btnAliasyCsv').onclick = () => zapiszPlik('kody_nauczone.csv', csvAliasy());
   $('btnBackup').onclick = () => zapiszPlik('skaner_kopia_'+new Date().toISOString().slice(0,10)+'.json', JSON.stringify(ST, null, 1), 'application/json');
-  $('backupPlik').onchange = e => { const f = e.target.files[0]; if(!f) return; f.text().then(t => { try{ const d = JSON.parse(t); if(!d.sesje) throw 0; confirm2('Wczytać kopię? Sesje o tych samych ID zostaną nadpisane.', () => { Object.assign(ST.sesje, d.sesje); Object.assign(ST.aliasy, d.aliasy||{}); Object.assign(ST.lotExp, d.lotExp||{}); if(d.aktualna && ST.sesje[d.aktualna]) ST.aktualna = d.aktualna; save(); render(); toast('Wczytano kopię'); }); }catch(_){ toast('To nie jest plik kopii skanera'); } }); e.target.value=''; };
+  $('backupPlik').onchange = e => { const f = e.target.files[0]; if(!f) return; f.text().then(t => { try{ const d = JSON.parse(t); if(!d.sesje) throw 0; confirm2('Wczytać kopię? Sesje o tych samych ID zostaną nadpisane.', () => { Object.assign(ST.sesje, d.sesje); Object.assign(ST.aliasy, d.aliasy||{}); Object.assign(ST.lotExp, d.lotExp||{}); Object.assign(ST.kartonLot, d.kartonLot||{}); Object.assign(ST.kartonSku, d.kartonSku||{}); if(d.aktualna && ST.sesje[d.aktualna]) ST.aktualna = d.aktualna; save(); render(); toast('Wczytano kopię'); }); }catch(_){ toast('To nie jest plik kopii skanera'); } }); e.target.value=''; };
   document.addEventListener('visibilitychange', () => { if(document.hidden && camOn) stopCam(); });
   document.addEventListener('keydown', e => { if(e.key==='Escape') zamknijModal(); });
 }
