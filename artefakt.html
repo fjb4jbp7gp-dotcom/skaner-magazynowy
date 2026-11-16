@@ -1,0 +1,701 @@
+<title>Skaner magazynowy Support-Pharma</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Układ: aplikacja jednoekranowa – kamera u góry, karta stanu, pasek zakładek na dole. */
+:root{
+  --bg:#f3f5f8; --panel:#ffffff; --fg:#13202e; --muted:#5b6b7c; --line:#d6dde6;
+  --accent:#1d3557; --accent-fg:#ffffff; --accent-soft:#e3ebf6;
+  --ok:#1f7a3f; --ok-soft:#dff3e6; --warn:#b26a00; --warn-soft:#fff1d6; --bad:#b3261e; --bad-soft:#fde3e1;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1620; --panel:#19232f; --fg:#eef2f6; --muted:#9fb0c1; --line:#2c3a49;
+  --accent:#8db4e8; --accent-fg:#0f1620; --accent-soft:#223449;
+  --ok:#5ccc85; --ok-soft:#163b25; --warn:#f0b24a; --warn-soft:#3f2e0f; --bad:#ff8a80; --bad-soft:#4a1a17; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0f1620; --panel:#19232f; --fg:#eef2f6; --muted:#9fb0c1; --line:#2c3a49;
+  --accent:#8db4e8; --accent-fg:#0f1620; --accent-soft:#223449;
+  --ok:#5ccc85; --ok-soft:#163b25; --warn:#f0b24a; --warn-soft:#3f2e0f; --bad:#ff8a80; --bad-soft:#4a1a17; color-scheme:dark }
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px;line-height:1.35;-webkit-text-size-adjust:100%;overscroll-behavior:none}
+#app{height:100%;display:flex;flex-direction:column;min-height:100dvh}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--accent);color:var(--accent-fg);padding-block:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;align-items:center;gap:10px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--accent)}
+header h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.02em;white-space:nowrap}
+header .sesja{margin-left:auto;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);color:inherit;border-radius:8px;padding:6px 10px;font-size:14px;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+main{flex:1;overflow-y:auto;padding-block:12px 90px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.view{display:flex;flex-direction:column;gap:12px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:repeat(4,1fr);background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+nav.tabs button{background:none;border:0;color:var(--muted);font:inherit;font-size:12px;padding:8px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:54px}
+nav.tabs button .ico{font-size:20px;line-height:1}
+nav.tabs button[aria-current="page"]{color:var(--accent);font-weight:600}
+nav.tabs button .badge{position:absolute;margin-left:34px;margin-top:-4px;background:var(--bad);color:#fff;border-radius:10px;font-size:11px;padding:1px 6px;font-weight:700}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.card h2{font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 8px;font-weight:600}
+button.btn,label.btn{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--fg);font:inherit;font-size:16px;font-weight:600;border-radius:10px;padding:12px 14px;min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;text-align:center}
+button.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+button.btn.danger{color:var(--bad);border-color:var(--bad)}
+button.btn.ok{background:var(--ok);color:#fff;border-color:var(--ok)}
+button.btn.small{min-height:40px;padding:8px 12px;font-size:14px}
+button.btn:disabled{opacity:.45}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>*{flex:1 1 auto;min-width:0}
+.row>input[type=text]{width:auto;flex:1 1 140px}
+.grow{flex:1 1 auto}
+input[type=text],input[type=number],input[type=date],textarea,select{font:inherit;font-size:16px;width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--fg);min-height:48px}
+textarea{min-height:120px;font-family:var(--mono);font-size:14px}
+.muted{color:var(--muted)}
+.mono{font-family:var(--mono)}
+.small{font-size:13px}
+/* kamera */
+.cam{position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:4/3;max-height:42vh;width:100%}
+.cam video{width:100%;height:100%;object-fit:cover;display:block}
+.cam .frame{position:absolute;inset:14% 10%;border:2px solid rgba(255,255,255,.85);border-radius:10px;pointer-events:none;box-shadow:0 0 0 2000px rgba(0,0,0,.18)}
+.cam .flash{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .25s}
+.cam .flash.ok{background:var(--ok);opacity:.55}
+.cam .flash.bad{background:var(--bad);opacity:.6}
+.cam .off{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#fff;padding:16px;text-align:center}
+.cam .tools{position:absolute;right:8px;top:8px;display:flex;gap:6px}
+.cam .tools button{background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:8px;font:inherit;font-size:13px;padding:6px 10px;min-height:36px}
+/* karta stanu skanowania */
+.stan{border-left:6px solid var(--accent)}
+.stan .krok{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.stan .tytul{font-size:22px;font-weight:700;margin:4px 0;text-wrap:balance}
+.stan .pola{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:15px;margin-top:6px}
+.stan .pola b{font-family:var(--mono);font-weight:600}
+.stan.lot{border-left-color:var(--warn)}
+.stan.exp{border-left-color:var(--warn)}
+.ostatni{display:flex;gap:10px;align-items:center}
+.ostatni .n{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;min-width:56px;text-align:center;background:var(--accent-soft);border-radius:10px;padding:6px 8px}
+.alert{border-radius:12px;padding:12px 14px;font-weight:700;font-size:17px;display:flex;gap:10px;align-items:center}
+.alert.bad{background:var(--bad-soft);color:var(--bad);border:2px solid var(--bad)}
+.alert.ok{background:var(--ok-soft);color:var(--ok);border:2px solid var(--ok)}
+.alert.warn{background:var(--warn-soft);color:var(--warn);border:2px solid var(--warn)}
+/* lista */
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.bad{background:var(--bad-soft);color:var(--bad)} .pill.neutral{background:var(--accent-soft);color:var(--accent)}
+.grupa{display:grid;grid-template-columns:1fr auto;gap:6px 10px;padding:10px 0;border-bottom:1px solid var(--line);align-items:center}
+.grupa .nazwa{font-weight:600}
+.grupa .meta{font-size:13px;color:var(--muted);font-family:var(--mono)}
+.grupa .ile{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;text-align:right}
+.grupa .akcje{grid-column:1/-1;display:flex;gap:6px;justify-content:flex-end}
+.grupa .akcje button{min-height:36px;padding:4px 12px;font-size:14px}
+.postep{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:6px}
+.postep i{display:block;height:100%;background:var(--ok)}
+.postep i.bad{background:var(--bad)} .postep i.warn{background:var(--warn)}
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.modal .box{background:var(--panel);color:var(--fg);width:100%;max-width:640px;max-height:88dvh;border-radius:16px 16px 0 0;display:flex;flex-direction:column;padding-block:12px calc(12px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.modal .box h3{margin:0 0 8px;font-size:17px}
+.modal .lista{overflow-y:auto;flex:1;margin-top:8px;-webkit-overflow-scrolling:touch}
+.modal .lista button{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:12px 4px;font:inherit;color:var(--fg);min-height:52px}
+.modal .lista button .s{display:block;font-size:12px;color:var(--muted);font-family:var(--mono)}
+.modal .lista .sekcja{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:10px 4px 2px;font-weight:600}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(80px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;z-index:30;max-width:90%;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+details summary{cursor:pointer;font-weight:600;padding:6px 0}
+kbd{font-family:var(--mono);background:var(--accent-soft);border-radius:4px;padding:1px 5px;font-size:13px}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+@media (min-width:700px){ main{max-width:760px;margin:0 auto;width:100%} nav.tabs{max-width:760px;margin:0 auto;border-left:1px solid var(--line);border-right:1px solid var(--line)} }
+</style>
+
+<div id="app">
+<header>
+  <h1>Skaner SP</h1>
+  <button class="sesja" id="btnSesja" title="Sesja (zamówienie)">—</button>
+</header>
+<main>
+
+<!-- ===== SKANUJ ===== -->
+<section class="view" id="v-skan">
+  <div class="cam" id="cam">
+    <video id="video" playsinline muted autoplay></video>
+    <div class="frame"></div>
+    <div class="flash" id="flash"></div>
+    <div class="tools"><button id="btnLatarka" hidden>Latarka</button><button id="btnStopCam" hidden>Stop</button></div>
+    <div class="off" id="camOff">
+      <div id="camInfo">Kamera wyłączona</div>
+      <button class="btn primary" id="btnStartCam">Włącz kamerę</button>
+      <label class="btn" id="lblFoto" hidden>Zrób zdjęcie kodu <input type="file" id="foto" accept="image/*" capture="environment" hidden></label>
+    </div>
+  </div>
+  <div id="alertPack" hidden></div>
+  <div class="card stan" id="stan"></div>
+  <div class="row" id="stanAkcje"></div>
+  <div class="card">
+    <div class="row">
+      <input type="text" id="reczny" placeholder="Wpisz kod, REF lub nazwę…" autocomplete="off" autocapitalize="characters">
+      <button class="btn" id="btnReczny" style="flex:0 0 auto">OK</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn" id="btnZListy">Wybierz z listy</button>
+      <button class="btn" id="btnCofnij">Cofnij ostatni</button>
+    </div>
+  </div>
+  <div class="card ostatni" id="ostatni"></div>
+</section>
+
+<!-- ===== LISTA ===== -->
+<section class="view" id="v-lista" hidden>
+  <div id="listaPodsumowanie"></div>
+  <div class="card"><h2>Zeskanowane (grupy: produkt + LOT + EXP)</h2><div id="grupy"></div></div>
+  <details class="card"><summary>Pojedyncze skany (chronologicznie)</summary><div id="skanyTabela" style="overflow-x:auto"></div></details>
+</section>
+
+<!-- ===== PACK LISTA ===== -->
+<section class="view" id="v-pack" hidden>
+  <div class="card">
+    <h2>Pack lista zamówienia</h2>
+    <p class="small muted" style="margin:0 0 8px">Jedna linia = jedna pozycja: <kbd>SKU lub nazwa ; LOT ; EXP ; ilość opakowań</kbd>. LOT i EXP można pominąć (wtedy liczy się tylko produkt). Separator: średnik, tabulator lub przecinek.</p>
+    <textarea id="packText" placeholder="P1-100100-10;;;10&#10;5044;ABC123;2027-12-31;4&#10;Curea P1 20x20 cm op. 10 szt.;;;6"></textarea>
+    <div class="row" style="margin-top:8px">
+      <button class="btn primary" id="btnPackWczytaj">Wczytaj pack listę</button>
+      <label class="btn">Plik CSV <input type="file" id="packPlik" accept=".csv,.txt,text/csv,text/plain" hidden></label>
+      <button class="btn" id="btnPackDodaj">Dodaj z listy produktów</button>
+    </div>
+  </div>
+  <div class="card"><h2>Pozycje i postęp</h2><div id="packTabela"></div>
+    <div class="row" style="margin-top:8px"><button class="btn danger small" id="btnPackUsun">Usuń pack listę</button></div>
+  </div>
+</section>
+
+<!-- ===== WIĘCEJ ===== -->
+<section class="view" id="v-wiecej" hidden>
+  <div class="card"><h2>Eksport sesji</h2>
+    <div class="row">
+      <button class="btn primary" id="btnCsvSkany">CSV: skany</button>
+      <button class="btn" id="btnCsvPodsum">CSV: podsumowanie</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn" id="btnKopiujCsv">Kopiuj CSV do schowka</button>
+      <button class="btn" id="btnKopiujJson">Kopiuj JSON</button>
+    </div>
+    <p class="small muted" style="margin:8px 0 0">CSV: separator „;”, UTF-8, daty ISO (RRRR-MM-DD). Na iPhonie otwiera się arkusz udostępniania (Pliki, Mail, AirDrop).</p>
+  </div>
+  <div class="card"><h2>Sesje (zamówienia)</h2><div id="sesjeLista"></div>
+    <div class="row" style="margin-top:8px"><button class="btn primary" id="btnNowaSesja">Nowa sesja</button><button class="btn" id="btnZmienNazwe">Zmień nazwę</button><button class="btn danger" id="btnUsunSesje">Usuń sesję</button></div>
+  </div>
+  <div class="card"><h2>Ustawienia</h2>
+    <label style="display:flex;gap:10px;align-items:center;min-height:44px"><input type="checkbox" id="ustAuto" style="width:22px;height:22px"> Ten sam produkt pod rząd: przepisz LOT/EXP z poprzedniego (bez skanowania)</label>
+    <label style="display:flex;gap:10px;align-items:center;min-height:44px"><input type="checkbox" id="ustDzwiek" style="width:22px;height:22px"> Dźwięk przy skanie</label>
+    <label style="display:flex;gap:10px;align-items:center;min-height:44px"><input type="checkbox" id="ustWymagaj" style="width:22px;height:22px"> Wymagaj LOT i EXP (bez „Pomiń”)</label>
+  </div>
+  <div class="card"><h2>Kody nauczone (nieznane kody → produkt)</h2><div id="aliasyLista" class="small"></div>
+    <div class="row" style="margin-top:8px"><button class="btn small" id="btnAliasyCsv">Eksport kody_nauczone.csv</button></div>
+  </div>
+  <div class="card"><h2>Kopia zapasowa</h2>
+    <div class="row"><button class="btn" id="btnBackup">Zapisz kopię (JSON)</button><label class="btn">Wczytaj kopię <input type="file" id="backupPlik" accept=".json,application/json" hidden></label></div>
+  </div>
+  <div class="card small muted" id="info"></div>
+</section>
+</main>
+
+<nav class="tabs">
+  <button data-v="skan" aria-current="page"><span class="ico">▣</span>Skanuj</button>
+  <button data-v="lista"><span class="ico">☰</span>Lista<span class="badge" id="badgeLista" hidden></span></button>
+  <button data-v="pack"><span class="ico">✓</span>Pack lista</button>
+  <button data-v="wiecej"><span class="ico">⋯</span>Więcej</button>
+</nav>
+</div>
+
+<script src="products.js"></script>
+<script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script>if(!window.ZXing){document.write('<script src="zxing.min.js"><\/script>')}</script>
+<script>
+/* ======================= DANE ======================= */
+const DB = window.PRODUKTY || {produkty:[], indeks_kodow:{}};
+const PROD = {}; DB.produkty.forEach(p => PROD[p.sku] = p);
+const KEY = 'skaner-sp.v1';
+const norm = s => String(s||'').replace(/\D/g,'').replace(/^0+/,'');
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const teraz = () => new Date().toISOString().slice(0,19).replace('T',' ');
+
+let ST = null;
+function load(){ try{ const t = localStorage.getItem(KEY); if(t) return JSON.parse(t);}catch(e){} return null; }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(ST)); }catch(e){ toast('Nie udało się zapisać (pamięć przeglądarki)'); } syncDb(); }
+function init(){
+  ST = load() || {sesje:{}, aktualna:null, aliasy:{}, ust:{auto:false, dzwiek:true, wymagaj:false}};
+  ST.ust = Object.assign({auto:false, dzwiek:true, wymagaj:false}, ST.ust||{});
+  if(!ST.aktualna || !ST.sesje[ST.aktualna]) nowaSesja(domyslnaNazwa());
+}
+function domyslnaNazwa(){ const d=new Date(); return 'Sesja '+d.toISOString().slice(0,10)+' '+d.toTimeString().slice(0,5); }
+function nowaSesja(nazwa){ const id=uid(); ST.sesje[id]={id, nazwa, utworzono:teraz(), skany:[], pack:[]}; ST.aktualna=id; save(); return id; }
+const S = () => ST.sesje[ST.aktualna];
+
+/* ======================= PARSER GS1 ======================= */
+const AI_FIX = {'00':18,'01':14,'02':14,'03':14,'11':6,'12':6,'13':6,'15':6,'16':6,'17':6,'20':2,'410':13,'411':13,'412':13,'413':13,'414':13,'415':13,'416':13,'417':13,'7001':13,'7003':10,'7006':6,'8017':18,'8018':18,'8026':18};
+const AI_VAR = ['10','21','22','235','240','241','242','243','250','251','253','254','255','30','37','3','390','391','392','393','394','395','400','401','402','403','420','421','422','423','424','425','426','427','7002','7004','7005','7007','7008','7009','7010','7020','7021','7022','7023','703','710','711','712','713','714','715','716','8001','8002','8003','8004','8005','8006','8007','8008','8009','8010','8011','8012','8013','8019','8020','8110','8111','8112','8200','90','91','92','93','94','95','96','97','98','99'];
+const GS = '\x1d';
+function ai17toISO(v){ // YYMMDD → RRRR-MM-DD; DD=00 → ostatni dzień miesiąca
+  const m = /^(\d{2})(\d{2})(\d{2})$/.exec(v); if(!m) return null;
+  let y = 2000+ +m[1], mo = +m[2], d = +m[3]; if(mo<1||mo>12) return null;
+  if(d===0) d = new Date(y, mo, 0).getDate();
+  if(d>31) return null;
+  return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+}
+function gs1ok(d){ d=String(d); let s=0; for(let i=d.length-2,w=3;i>=0;i--,w=4-w) s+=+d[i]*w; return (10-s%10)%10===+d[d.length-1]; }
+function parseGS1(rawIn, format){
+  let raw = String(rawIn||'').trim();
+  const out = {raw, gtin:null, lot:null, exp:null, serial:null, ais:{}, kod_artykulu:null, format:format||''};
+  let s = raw.replace(/^\](C1|d2|Q3|e0|d1|Q1)/,'').replace(/^\x1d+/,'');
+  const F = String(format||'');
+  if(/^(EAN_13|UPC_A|UPC_E|EAN_8|ITF)$/.test(F) && /^\d{8,14}$/.test(s)){ out.ais['01'] = s; out.gtin = s; return out; }
+  if(/^\d{8}$/.test(s) && !/^(EAN_8)$/.test(F)){ // 8 cyfr: AI(17)+data bez GS, albo EAN-8
+    if(s.startsWith('17') && ai17toISO(s.slice(2))){ out.ais['17'] = s.slice(2); out.exp = ai17toISO(s.slice(2)); return out; }
+    if(s.startsWith('11') && ai17toISO(s.slice(2))){ out.ais['11'] = s.slice(2); return out; }
+    if(gs1ok(s)){ out.ais['01'] = s; out.gtin = s; return out; }
+  }
+  // kod artykułu Curea w tekście (np. REF C1DUO-100100-10)
+  const ka = /\b((?:P1B|P1D|P1|C1DUO|C2|P2)-\d{6}-\d{1,3})\b/i.exec(s); if(ka) out.kod_artykulu = ka[1].toUpperCase();
+  // format z nawiasami: (01)…(17)…(10)…
+  if(/^\(\d{2,4}\)/.test(s)){
+    const re = /\((\d{2,4})\)([^(]*)/g; let m;
+    while((m = re.exec(s))) out.ais[m[1]] = m[2].replace(GS,'').trim();
+  } else if(/^\d{2}/.test(s) && (s.includes(GS) || /^01\d{14}/.test(s) || /^(10|17|11|21)/.test(s)) && !/^\d{8}$|^\d{12,14}$/.test(s)){
+    // ciąg elementów GS1 bez nawiasów
+    let i = 0, guard = 0;
+    while(i < s.length && guard++ < 40){
+      let ai = null, len = null;
+      for(const L of [2,3,4]){ const c = s.substr(i,L); if(AI_FIX[c]!==undefined){ ai=c; len=AI_FIX[c]; break; } }
+      if(!ai){ for(const L of [4,3,2]){ const c = s.substr(i,L); if(AI_VAR.includes(c) || (L===4 && AI_VAR.includes(c.slice(0,3)))){ ai=c; len=null; break; } } }
+      if(!ai){ out.ais['?'] = s.slice(i); break; }
+      i += ai.length;
+      let val;
+      if(len){ val = s.substr(i,len); i += len; if(s[i]===GS) i++; }
+      else { const j = s.indexOf(GS, i); val = j<0 ? s.slice(i) : s.slice(i,j); i = j<0 ? s.length : j+1; }
+      out.ais[ai] = val;
+    }
+  } else if(/^\d{8}$|^\d{12,14}$/.test(s)){ out.ais['01'] = s; }
+  if(out.ais['01']) out.gtin = out.ais['01'];
+  if(out.ais['02'] && !out.gtin) out.gtin = out.ais['02'];
+  if(out.ais['10']) out.lot = out.ais['10'].trim();
+  if(out.ais['21']) out.serial = out.ais['21'].trim();
+  if(out.ais['17']) out.exp = ai17toISO(out.ais['17']) || out.ais['17'];
+  return out;
+}
+function parseDate(txt){ // tekst daty → ISO lub null
+  let t = String(txt||'').trim().toUpperCase().replace(/^(EXP|EXP\.|UŻYĆ DO|USE BY|BEST BEFORE)[:\s]*/,'');
+  let m;
+  if((m=/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})$/.exec(t))) return iso(m[1],m[2],m[3]);
+  if((m=/^(\d{1,2})[-./](\d{1,2})[-./](\d{4})$/.exec(t))) return iso(m[3],m[2],m[1]);
+  if((m=/^(\d{4})[-./](\d{1,2})$/.exec(t))) return iso(m[1],m[2],0);
+  if((m=/^(\d{1,2})[-./](\d{4})$/.exec(t))) return iso(m[2],m[1],0);
+  if((m=/^(\d{4})(\d{2})(\d{2})$/.exec(t))) return iso(m[1],m[2],m[3]);
+  if((m=/^(\d{2})(\d{2})(\d{2})$/.exec(t))) return ai17toISO(t);
+  if((m=/^(\d{4})(\d{2})$/.exec(t))) return iso(m[1],m[2],0);
+  const MON={JAN:1,FEB:2,MAR:3,APR:4,MAY:5,JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12,STY:1,LUT:2,MAR_:3,KWI:4,MAJ:5,CZE:6,LIP:7,SIE:8,WRZ:9,PAŹ:10,PAZ:10,LIS:11,GRU:12};
+  if((m=/^([A-ZŹ]{3})[\s-]*(\d{4})$/.exec(t)) && MON[m[1]]) return iso(m[2],MON[m[1]],0);
+  if((m=/^(\d{1,2})[\s-]*([A-ZŹ]{3})[\s-]*(\d{4})$/.exec(t)) && MON[m[2]]) return iso(m[3],MON[m[2]],m[1]);
+  return null;
+  function iso(y,mo,d){ y=+y; mo=+mo; d=+d; if(mo<1||mo>12||y<2000||y>2100) return null; if(!d) d=new Date(y,mo,0).getDate(); if(d>31) return null; return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
+}
+function gs1Prefix(gtin){ const n = String(gtin||'').replace(/\D/g,'').padStart(14,'0').slice(1); if(n.startsWith('426022363')) return 'Curea'; if(n.startsWith('0735471')||n.startsWith('735471')) return 'PolyMem'; return null; }
+
+/* ======================= WYSZUKIWANIE PRODUKTU ======================= */
+function kandydaci(parsed){
+  const res = [];
+  const push = (sku, poziom, zrodlo) => { if(PROD[sku] && !res.some(r=>r.sku===sku)) res.push({sku, poziom, zrodlo}); };
+  if(parsed.gtin){
+    const k = norm(parsed.gtin);
+    if(ST.aliasy[k]) push(ST.aliasy[k].sku, ST.aliasy[k].poziom, 'nauczony');
+    (DB.indeks_kodow[k]||[]).forEach(x => push(x.sku, x.poziom, 'baza'));
+  }
+  if(parsed.kod_artykulu){
+    const ka = parsed.kod_artykulu;
+    if(PROD[ka]) push(ka, 'opakowanie', 'kod artykułu');
+    else { const base = ka.replace(/-\d+$/,''); DB.produkty.filter(p => p.sku.startsWith(base+'-')).forEach(p => push(p.sku, 'opakowanie', 'kod artykułu')); }
+  }
+  if(!res.length && !parsed.gtin){ // tekst nie-GS1: alias po surowym kodzie
+    const k = 'txt:' + parsed.raw.trim().toUpperCase();
+    if(ST.aliasy[k]) push(ST.aliasy[k].sku, ST.aliasy[k].poziom, 'nauczony');
+  }
+  return res;
+}
+function szukaj(q){
+  q = (q||'').trim().toLowerCase(); const w = q.split(/\s+/).filter(Boolean);
+  return DB.produkty.filter(p => { const t=(p.nazwa+' '+p.sku+' '+p.marka+' '+(p.nazwa_en||'')).toLowerCase(); return w.every(x=>t.includes(x)); })
+    .sort((a,b)=> (b.sprzedawany-a.sprzedawany) || a.nazwa.localeCompare(b.nazwa,'pl'));
+}
+
+/* ======================= STAN SKANOWANIA ======================= */
+let pending = null;   // {sku, poziom, gtin, lot, exp, raw, zrodlo}
+let lastRaw = '', lastRawT = 0;
+function krok(){ if(!pending) return 'PRODUKT'; if(!pending.lot && !pending.lotPominiety) return 'LOT'; if(!pending.exp && !pending.expPominiety) return 'EXP'; return 'GOTOWE'; }
+
+function onKod(raw, zrodlo, format){
+  raw = String(raw||'').trim(); if(!raw) return;
+  const t = Date.now(); if(raw===lastRaw && t-lastRawT < 1800) return; lastRaw=raw; lastRawT=t;
+  const p = parseGS1(raw, format);
+  const k = krok();
+  const maProdukt = !!(p.gtin || p.kod_artykulu);
+  if(k==='PRODUKT' || maProdukt){
+    if(maProdukt || (!p.lot && !p.exp && !parseDate(raw))){
+      if(pending && maProdukt){ // nowy produkt zanim poprzedni skończony → zapisz poprzedni bez brakujących danych
+        if(ST.ust.wymagaj){ blad('Najpierw LOT/EXP dla: '+PROD[pending.sku].nazwa); return; }
+        zatwierdz('skan');
+      }
+      return produktZeSkanu(p, zrodlo);
+    }
+    // sam LOT/EXP bez produktu w kroku PRODUKT → dopisz do ostatniego skanu
+    const s = S(); const last = s.skany[s.skany.length-1];
+    if(last && (p.lot || p.exp || parseDate(raw))){
+      if(p.lot) last.lot = p.lot; if(p.exp) last.exp = p.exp;
+      if(!p.lot && !p.exp){ const d = parseDate(raw); if(d) last.exp = d; }
+      save(); okFlash('Uzupełniono ostatnią pozycję: '+PROD[last.sku].nazwa); render(); return;
+    }
+    return nieznany(p);
+  }
+  // krok LOT / EXP
+  let zmiana = false;
+  if(p.lot){ pending.lot = p.lot; zmiana = true; }
+  if(p.exp){ pending.exp = p.exp; zmiana = true; }
+  if(!zmiana){
+    const d = parseDate(raw);
+    if(k==='LOT' && !d){ pending.lot = raw.replace(/^(LOT|LOT\.|LOT:|\(10\))\s*/i,'').trim(); zmiana = true; }
+    else if(d){ pending.exp = d; zmiana = true; }
+    else if(k==='EXP'){ pending.exp = raw.replace(/^(EXP|EXP\.|EXP:|\(17\))\s*/i,'').trim(); zmiana = true; }
+  }
+  if(zmiana){ okFlash(); if(krok()==='GOTOWE') zatwierdz('skan'); else render(); }
+}
+function produktZeSkanu(p, zrodlo){
+  const kand = kandydaci(p);
+  if(kand.length===1){ ustawPending(kand[0].sku, kand[0].poziom, p, zrodlo); return; }
+  if(kand.length>1){ otworzPicker({kandydaci:kand, parsed:p, zrodlo, tytul:'Który produkt?'}); return; }
+  nieznany(p, zrodlo);
+}
+function nieznany(p, zrodlo){
+  const hint = gs1Prefix(p.gtin) || '';
+  otworzPicker({parsed:p, zrodlo, tytul:'Nieznany kod – wybierz produkt', filtr:hint, zapamietaj:true});
+}
+function ustawPending(sku, poziom, p, zrodlo){
+  const prod = PROD[sku];
+  pending = {sku, poziom: poziom||prod.poziom, gtin: p.gtin||'', lot: p.lot||'', exp: p.exp||'', raw: p.raw||'', zrodlo: zrodlo||'skan'};
+  const s = S(); const last = s.skany[s.skany.length-1];
+  if(ST.ust.auto && last && last.sku===sku && (last.lot||last.exp)){ if(!pending.lot) pending.lot=last.lot; if(!pending.exp) pending.exp=last.exp; }
+  okFlash();
+  if(krok()==='GOTOWE') zatwierdz(zrodlo); else render();
+}
+function zatwierdz(zrodlo){
+  if(!pending) return;
+  const prod = PROD[pending.sku]; const s = S();
+  const rec = {id:uid(), czas:teraz(), sku:prod.sku, nazwa:prod.nazwa, marka:prod.marka, poziom:pending.poziom, szt_w_opak:prod.szt_w_opak,
+               ilosc:1, lot:(pending.lot||'').toUpperCase(), exp:pending.exp||'', gtin:pending.gtin||'', zrodlo:zrodlo||pending.zrodlo||'skan', kod_surowy:pending.raw||''};
+  s.skany.push(rec); pending = null; save();
+  const st = sprawdzPack(rec);
+  if(st==='za_duzo') badFlash('ZA DUŻO: '+prod.nazwa); else okFlash();
+  render();
+}
+function sprawdzPack(rec){ // status pozycji pack listy po dodaniu skanu
+  const s = S(); if(!s.pack.length) return null;
+  const linia = s.pack.find(l => pasuje(l, rec)); if(!linia) return 'poza';
+  const ile = licz(linia); return ile>linia.ilosc ? 'za_duzo' : (ile===linia.ilosc ? 'ok' : 'czesc');
+}
+const pasuje = (l, r) => l.sku===r.sku && (!l.lot || l.lot.toUpperCase()===(r.lot||'').toUpperCase()) && (!l.exp || l.exp===r.exp);
+const licz = l => S().skany.filter(r => pasuje(l, r)).reduce((a,r)=>a+r.ilosc,0);
+
+/* ======================= PICKER ======================= */
+let picker = null;
+function otworzPicker(opt){
+  zamknijModal();
+  picker = opt;
+  const box = document.createElement('div'); box.className='modal'; box.id='modal';
+  const zap = opt.zapamietaj && (opt.parsed.gtin || opt.parsed.raw);
+  box.innerHTML = `<div class="box">
+    <h3>${opt.tytul||'Wybierz produkt'}</h3>
+    ${opt.parsed ? `<div class="small mono muted" style="word-break:break-all">kod: ${esc(opt.parsed.raw)}${opt.parsed.lot?' · LOT '+esc(opt.parsed.lot):''}${opt.parsed.exp?' · EXP '+esc(opt.parsed.exp):''}</div>`:''}
+    ${opt.ilosc ? `<div class="row" style="margin-top:6px"><label class="grow">Ilość opakowań <input type="number" id="pickIlosc" value="1" min="1" inputmode="numeric"></label></div>`:''}
+    <input type="text" id="pickQ" placeholder="Szukaj: nazwa, REF, rozmiar…" value="${esc(opt.filtr||'')}" autocomplete="off" style="margin-top:8px">
+    ${zap ? `<label class="small" style="display:flex;gap:8px;align-items:center;margin-top:6px"><input type="checkbox" id="pickZap" checked style="width:20px;height:20px"> Zapamiętaj ten kod dla wybranego produktu</label>`:''}
+    <div class="lista" id="pickLista"></div>
+    <div class="row" style="margin-top:8px"><button class="btn" id="pickAnuluj">Anuluj</button></div>
+  </div>`;
+  document.body.appendChild(box);
+  const q = box.querySelector('#pickQ');
+  const rysuj = () => {
+    const L = box.querySelector('#pickLista'); L.innerHTML='';
+    let lista;
+    if(opt.kandydaci && !q.value.trim()) lista = opt.kandydaci.map(k => Object.assign({}, PROD[k.sku], {_poziom:k.poziom, _zrodlo:k.zrodlo})).sort((a,b)=>b.sprzedawany-a.sprzedawany);
+    else lista = szukaj(q.value);
+    let sekcja = null;
+    lista.slice(0,200).forEach(p => {
+      const sek = opt.kandydaci && !q.value.trim() ? 'Pasujące kody' : (p.sprzedawany ? 'Sprzedawane' : 'Katalog (niesprzedawane)');
+      if(sek!==sekcja){ sekcja=sek; const h=document.createElement('div'); h.className='sekcja'; h.textContent=sek; L.appendChild(h); }
+      const b = document.createElement('button');
+      b.innerHTML = `${esc(p.nazwa)} <span class="s">${esc(p.sku)} · ${p.szt_w_opak} szt.${p._poziom && p._poziom!=='opakowanie' ? ' · kod '+p._poziom : ''}${p._zrodlo ? ' · '+p._zrodlo : ''}</span>`;
+      b.onclick = () => wybierz(p, p._poziom || p.poziom);
+      L.appendChild(b);
+    });
+    if(!lista.length) L.innerHTML = '<div class="muted" style="padding:12px 4px">Brak wyników</div>';
+  };
+  const wybierz = (p, poziom) => {
+    const zapTak = zap && box.querySelector('#pickZap') && box.querySelector('#pickZap').checked;
+    if(zapTak){ const k = opt.parsed.gtin ? norm(opt.parsed.gtin) : 'txt:'+opt.parsed.raw.trim().toUpperCase(); ST.aliasy[k] = {sku:p.sku, poziom:poziom||'opakowanie', kod:opt.parsed.gtin||opt.parsed.raw, kiedy:teraz()}; save(); toast('Zapamiętano kod dla: '+p.nazwa); }
+    const ilosc = opt.ilosc ? Math.max(1, +(box.querySelector('#pickIlosc').value||1)) : 1;
+    zamknijModal();
+    if(opt.onWybor) return opt.onWybor(p, ilosc);
+    ustawPending(p.sku, poziom, opt.parsed || {raw:'', gtin:''}, opt.zrodlo || 'recznie');
+  };
+  q.oninput = rysuj; rysuj();
+  box.querySelector('#pickAnuluj').onclick = zamknijModal;
+  box.addEventListener('click', e => { if(e.target===box) zamknijModal(); });
+  if(!opt.kandydaci) setTimeout(()=>q.focus(), 50);
+}
+function zamknijModal(){ const m=document.getElementById('modal'); if(m) m.remove(); picker=null; }
+function prompt2(tytul, wartosc, cb){ // własne okno (prompt() nie działa w artefakcie)
+  zamknijModal();
+  const box = document.createElement('div'); box.className='modal'; box.id='modal';
+  box.innerHTML = `<div class="box"><h3>${esc(tytul)}</h3><input type="text" id="prVal" value="${esc(wartosc||'')}"><div class="row" style="margin-top:10px"><button class="btn" id="prNie">Anuluj</button><button class="btn primary" id="prTak">OK</button></div></div>`;
+  document.body.appendChild(box);
+  box.querySelector('#prNie').onclick = zamknijModal;
+  box.querySelector('#prTak').onclick = () => { const v = box.querySelector('#prVal').value; zamknijModal(); cb(v); };
+  setTimeout(()=>box.querySelector('#prVal').focus(),50);
+}
+function confirm2(tytul, cb){
+  zamknijModal();
+  const box = document.createElement('div'); box.className='modal'; box.id='modal';
+  box.innerHTML = `<div class="box"><h3>${esc(tytul)}</h3><div class="row" style="margin-top:10px"><button class="btn" id="prNie">Nie</button><button class="btn danger" id="prTak">Tak, wykonaj</button></div></div>`;
+  document.body.appendChild(box);
+  box.querySelector('#prNie').onclick = zamknijModal;
+  box.querySelector('#prTak').onclick = () => { zamknijModal(); cb(); };
+}
+
+/* ======================= RENDER ======================= */
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let widok = 'skan';
+function pokaz(v){ widok=v; ['skan','lista','pack','wiecej'].forEach(x => { $('v-'+x).hidden = x!==v; }); document.querySelectorAll('nav.tabs button').forEach(b => { if(b.dataset.v===v) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); }); render(); }
+function render(){
+  const s = S();
+  $('btnSesja').textContent = s.nazwa;
+  renderStan(); renderOstatni(); renderPackAlert();
+  const n = s.skany.reduce((a,r)=>a+r.ilosc,0); const b=$('badgeLista'); b.hidden = !n; b.textContent = n;
+  if(widok==='lista') renderLista();
+  if(widok==='pack') renderPack();
+  if(widok==='wiecej') renderWiecej();
+}
+function renderStan(){
+  const el = $('stan'), ak = $('stanAkcje'); const k = krok();
+  el.className = 'card stan ' + (k==='LOT'?'lot':k==='EXP'?'exp':'');
+  if(!pending){
+    el.innerHTML = `<div class="krok">Krok 1 z 3</div><div class="tytul">Zeskanuj kod produktu</div><div class="muted small">Kod kreskowy opakowania (PolyMem: EAN/UPC lub GS1-128; Curea: kod QR). Kod QR z GTIN+LOT+EXP dodaje pozycję od razu.</div>`;
+    ak.innerHTML = ''; return;
+  }
+  const p = PROD[pending.sku];
+  const pola = `<div class="pola"><span class="muted">Produkt</span><b>${esc(p.sku)}</b><span class="muted">Opak.</span><b>${p.szt_w_opak} szt.${pending.poziom!=='opakowanie' ? ' (kod '+esc(pending.poziom)+')':''}</b><span class="muted">LOT</span><b>${esc(pending.lot||'—')}</b><span class="muted">EXP</span><b>${esc(pending.exp||'—')}</b></div>`;
+  el.innerHTML = `<div class="krok">Krok ${k==='LOT'?'2':'3'} z 3 · ${esc(p.marka)}</div><div class="tytul">${k==='LOT'?'Zeskanuj LOT':'Zeskanuj datę EXP'}</div><div>${esc(p.nazwa)}</div>${pola}`;
+  const s = S(); const last = s.skany[s.skany.length-1];
+  ak.innerHTML = `
+    <button class="btn" id="akWpisz">Wpisz ${k==='LOT'?'LOT':'EXP'}</button>
+    ${last && (last.lot||last.exp) ? `<button class="btn" id="akJakPoprz">Jak poprzednio<br><span class="small mono">${esc(last.lot||'—')} · ${esc(last.exp||'—')}</span></button>`:''}
+    ${ST.ust.wymagaj ? '' : `<button class="btn ok" id="akPomin">Zapisz bez ${k==='LOT'?'LOT/EXP':'EXP'}</button>`}
+    <button class="btn danger" id="akAnuluj">Anuluj</button>`;
+  $('akWpisz').onclick = () => prompt2(k==='LOT'?'LOT':'EXP (RRRR-MM-DD)', '', v => { if(!v.trim()) return; if(k==='LOT') pending.lot=v.trim(); else pending.exp = parseDate(v)||v.trim(); if(krok()==='GOTOWE') zatwierdz('recznie'); else render(); });
+  const jp = $('akJakPoprz'); if(jp) jp.onclick = () => { pending.lot = pending.lot||last.lot; pending.exp = pending.exp||last.exp; if(krok()==='GOTOWE') zatwierdz('skan'); else render(); };
+  const pm = $('akPomin'); if(pm) pm.onclick = () => { pending.lotPominiety = true; pending.expPominiety = true; zatwierdz(pending.zrodlo); };
+  $('akAnuluj').onclick = () => { pending=null; render(); };
+}
+function renderOstatni(){
+  const s = S(); const el = $('ostatni'); const last = s.skany[s.skany.length-1];
+  const n = s.skany.reduce((a,r)=>a+r.ilosc,0);
+  if(!last){ el.innerHTML = `<div class="n">0</div><div><b>Brak skanów w tej sesji</b><div class="small muted">Każde zeskanowane opakowanie = 1 pozycja.</div></div>`; return; }
+  const g = s.skany.filter(r => r.sku===last.sku && r.lot===last.lot && r.exp===last.exp).reduce((a,r)=>a+r.ilosc,0);
+  el.innerHTML = `<div class="n">${n}</div><div style="min-width:0"><b>Ostatni: ${esc(last.nazwa)}</b><div class="small mono muted">LOT ${esc(last.lot||'—')} · EXP ${esc(last.exp||'—')} · ten LOT: ${g} opak. · ${esc(last.czas.slice(11))}</div></div>`;
+}
+function renderPackAlert(){
+  const s = S(); const el = $('alertPack');
+  if(!s.pack.length){ el.hidden = true; return; }
+  const st = s.pack.map(l => ({l, ile:licz(l)}));
+  const zaDuzo = st.filter(x => x.ile > x.l.ilosc); const brak = st.filter(x => x.ile < x.l.ilosc);
+  const poza = s.skany.filter(r => !s.pack.some(l => pasuje(l, r)));
+  el.hidden = false;
+  if(zaDuzo.length){ const x = zaDuzo[0]; el.innerHTML = `<div class="alert bad">⚠ ZA DUŻO: ${esc(x.l.nazwa)}${x.l.lot?' LOT '+esc(x.l.lot):''} — jest ${x.ile}, miało być ${x.l.ilosc}</div>`; }
+  else if(poza.length){ el.innerHTML = `<div class="alert warn">⚠ Poza pack listą: ${esc(poza[poza.length-1].nazwa)} (${poza.length} opak.)</div>`; }
+  else if(!brak.length){ el.innerHTML = `<div class="alert ok">✓ Zamówienie kompletne: ${s.pack.length} pozycji, ${st.reduce((a,x)=>a+x.ile,0)} opak.</div>`; }
+  else { const x = brak[0]; el.innerHTML = `<div class="alert warn" style="font-weight:600">Pack lista: ${s.pack.length-brak.length}/${s.pack.length} pozycji OK · teraz: ${esc(x.l.nazwa)} ${x.ile}/${x.l.ilosc}</div>`; }
+}
+function grupuj(skany){
+  const m = new Map();
+  skany.forEach(r => { const k = r.sku+'|'+r.lot+'|'+r.exp; if(!m.has(k)) m.set(k, {sku:r.sku, nazwa:r.nazwa, marka:r.marka, lot:r.lot, exp:r.exp, szt_w_opak:r.szt_w_opak, poziom:r.poziom, ilosc:0, ids:[]}); const g=m.get(k); g.ilosc+=r.ilosc; g.ids.push(r.id); });
+  return [...m.values()].sort((a,b)=> a.nazwa.localeCompare(b.nazwa,'pl') || a.lot.localeCompare(b.lot));
+}
+function renderLista(){
+  const s = S(); const gr = grupuj(s.skany);
+  const n = s.skany.reduce((a,r)=>a+r.ilosc,0); const szt = s.skany.reduce((a,r)=>a+r.ilosc*(r.poziom==='opakowanie'?r.szt_w_opak:1),0);
+  $('listaPodsumowanie').innerHTML = `<div class="card"><div class="row"><div><div class="muted small">Opakowań</div><div style="font-size:28px;font-weight:800">${n}</div></div><div><div class="muted small">Sztuk</div><div style="font-size:28px;font-weight:800">${szt}</div></div><div><div class="muted small">Grup</div><div style="font-size:28px;font-weight:800">${gr.length}</div></div></div></div>`;
+  const el = $('grupy'); el.innerHTML = gr.length ? '' : '<div class="muted">Nic nie zeskanowano.</div>';
+  gr.forEach(g => {
+    const d = document.createElement('div'); d.className='grupa';
+    let pill = '';
+    if(s.pack.length){ const l = s.pack.find(l => pasuje(l, g)); if(!l) pill = '<span class="pill warn">poza listą</span>'; else { const ile = licz(l); pill = ile>l.ilosc ? `<span class="pill bad">za dużo ${ile}/${l.ilosc}</span>` : ile===l.ilosc ? `<span class="pill ok">OK ${ile}/${l.ilosc}</span>` : `<span class="pill neutral">${ile}/${l.ilosc}</span>`; } }
+    d.innerHTML = `<div style="min-width:0"><div class="nazwa">${esc(g.nazwa)} ${pill}</div><div class="meta">${esc(g.sku)} · LOT ${esc(g.lot||'—')} · EXP ${esc(g.exp||'—')}${g.poziom!=='opakowanie'?' · '+esc(g.poziom):''}</div></div><div class="ile">${g.ilosc}</div>
+      <div class="akcje"><button class="btn" data-a="minus">−1</button><button class="btn" data-a="plus">+1</button><button class="btn" data-a="edit">LOT/EXP</button><button class="btn danger" data-a="del">Usuń</button></div>`;
+    d.querySelector('[data-a=minus]').onclick = () => { const id = g.ids[g.ids.length-1]; s.skany = s.skany.filter(r=>r.id!==id); save(); render(); };
+    d.querySelector('[data-a=plus]').onclick = () => { const r = s.skany.find(r=>r.id===g.ids[g.ids.length-1]); s.skany.push(Object.assign({}, r, {id:uid(), czas:teraz(), zrodlo:'recznie', kod_surowy:''})); save(); render(); };
+    d.querySelector('[data-a=edit]').onclick = () => prompt2('LOT ; EXP dla całej grupy', (g.lot||'')+' ; '+(g.exp||''), v => { const [lot, exp] = v.split(';').map(x=>(x||'').trim()); s.skany.forEach(r => { if(g.ids.includes(r.id)){ r.lot = lot.toUpperCase(); r.exp = parseDate(exp)||exp; } }); save(); render(); });
+    d.querySelector('[data-a=del]').onclick = () => confirm2('Usunąć '+g.ilosc+' opak. '+g.nazwa+'?', () => { s.skany = s.skany.filter(r=>!g.ids.includes(r.id)); save(); render(); });
+    el.appendChild(d);
+  });
+  const t = $('skanyTabela');
+  t.innerHTML = s.skany.length ? `<table><tr><th>Czas</th><th>Produkt</th><th>LOT</th><th>EXP</th><th>Źródło</th></tr>${s.skany.slice().reverse().map(r=>`<tr><td class="mono small">${esc(r.czas.slice(5))}</td><td>${esc(r.nazwa)}</td><td class="mono">${esc(r.lot||'—')}</td><td class="mono">${esc(r.exp||'—')}</td><td class="small muted">${esc(r.zrodlo)}</td></tr>`).join('')}</table>` : '<div class="muted">Brak</div>';
+}
+function renderPack(){
+  const s = S(); const el = $('packTabela');
+  if(!s.pack.length){ el.innerHTML = '<div class="muted">Brak pack listy. Wklej linie powyżej lub dodaj pozycje z listy produktów.</div>'; return; }
+  el.innerHTML = s.pack.map((l,i) => { const ile = licz(l); const st = ile>l.ilosc?'bad':ile===l.ilosc?'ok':ile?'warn':''; const pct = Math.min(100, Math.round(100*ile/l.ilosc));
+    return `<div class="grupa"><div style="min-width:0"><div class="nazwa">${esc(l.nazwa)} ${st==='bad'?'<span class="pill bad">za dużo</span>':st==='ok'?'<span class="pill ok">OK</span>':''}</div><div class="meta">${esc(l.sku)} · LOT ${esc(l.lot||'dowolny')} · EXP ${esc(l.exp||'dowolny')}</div><div class="postep"><i class="${st}" style="width:${pct}%"></i></div></div><div class="ile">${ile}/${l.ilosc}</div>
+      <div class="akcje"><button class="btn" data-i="${i}" data-a="qty">Ilość</button><button class="btn danger" data-i="${i}" data-a="del">Usuń</button></div></div>`; }).join('');
+  el.querySelectorAll('button').forEach(b => { const i=+b.dataset.i; if(b.dataset.a==='del') b.onclick = () => { s.pack.splice(i,1); save(); render(); }; else b.onclick = () => prompt2('Ilość opakowań', s.pack[i].ilosc, v => { const n=parseInt(v,10); if(n>0){ s.pack[i].ilosc=n; save(); render(); } }); });
+}
+function renderWiecej(){
+  const el = $('sesjeLista');
+  el.innerHTML = Object.values(ST.sesje).sort((a,b)=>b.utworzono.localeCompare(a.utworzono)).map(s => `<label style="display:flex;gap:10px;align-items:center;min-height:44px;border-bottom:1px solid var(--line)"><input type="radio" name="ses" value="${s.id}" ${s.id===ST.aktualna?'checked':''} style="width:20px;height:20px"><span class="grow">${esc(s.nazwa)}<span class="small muted"> · ${s.skany.reduce((a,r)=>a+r.ilosc,0)} opak. · ${esc(s.utworzono.slice(0,16))}</span></span></label>`).join('');
+  el.querySelectorAll('input[name=ses]').forEach(r => r.onchange = () => { ST.aktualna = r.value; pending=null; save(); render(); });
+  $('ustAuto').checked = ST.ust.auto; $('ustDzwiek').checked = ST.ust.dzwiek; $('ustWymagaj').checked = ST.ust.wymagaj;
+  const al = Object.entries(ST.aliasy);
+  $('aliasyLista').innerHTML = al.length ? al.map(([k,a]) => `<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)"><span class="grow"><span class="mono">${esc(a.kod||k)}</span> → ${esc(PROD[a.sku]?PROD[a.sku].nazwa:a.sku)}</span><button class="btn small" data-k="${esc(k)}">Usuń</button></div>`).join('') : '<div class="muted">Brak. Gdy zeskanujesz nieznany kod i wybierzesz produkt, kod zostanie tu zapamiętany.</div>';
+  $('aliasyLista').querySelectorAll('button').forEach(b => b.onclick = () => { delete ST.aliasy[b.dataset.k]; save(); render(); });
+  $('info').innerHTML = `Baza produktów: ${DB.produkty.length} pozycji (${DB.produkty.filter(p=>p.sprzedawany).length} sprzedawanych), ${Object.keys(DB.indeks_kodow).length} kodów, wygenerowana ${esc(DB.wygenerowano||'?')}.<br>Tryb: ${trybOpis}. Dane są zapisane w tej przeglądarce (telefonie) – eksportuj CSV po każdej sesji.`;
+}
+
+/* ======================= PACK LISTA: parsowanie ======================= */
+function parsujPack(txt){
+  const linie = String(txt||'').split(/\r?\n/).map(l=>l.trim()).filter(l => l && !/^#/.test(l));
+  const out = [], bledy = [];
+  linie.forEach((l, i) => {
+    const sep = l.includes(';') ? ';' : l.includes('\t') ? '\t' : ',';
+    const c = l.split(sep).map(x => x.trim().replace(/^"|"$/g,''));
+    if(i===0 && /^(sku|produkt|nazwa|kod)/i.test(c[0]) && !PROD[c[0]]) return; // nagłówek
+    let [id, lot, exp, ilosc] = c;
+    if(c.length===2){ ilosc = c[1]; lot=''; exp=''; }
+    const n = parseInt(ilosc,10) || 1;
+    let p = PROD[id] || PROD[(id||'').toUpperCase()] || DB.produkty.find(x => x.nazwa.toLowerCase()===id.toLowerCase());
+    if(!p){ const k = norm(id); const a = ST.aliasy[k]; if(a) p = PROD[a.sku]; else if(k && DB.indeks_kodow[k]) p = PROD[DB.indeks_kodow[k][0].sku]; }
+    if(!p){ const r = szukaj(id).filter(x=>x.sprzedawany); if(r.length===1) p = r[0]; else if(r.length>1 && r[0].nazwa.toLowerCase().startsWith(id.toLowerCase())) p = r[0]; }
+    if(!p){ bledy.push(l); return; }
+    out.push({sku:p.sku, nazwa:p.nazwa, lot:(lot||'').toUpperCase(), exp: exp ? (parseDate(exp)||exp) : '', ilosc:n});
+  });
+  return {out, bledy};
+}
+
+/* ======================= EKSPORT ======================= */
+const BOM = '﻿';
+const csvCell = v => { v = String(v==null?'':v); return /[;"\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+function csvSkany(s){
+  const h = ['lp','data_czas','sesja','sku','nazwa','marka','poziom','szt_w_opak','ilosc_opak','lot','exp','gtin','zrodlo','kod_surowy'];
+  return BOM + h.join(';') + '\n' + s.skany.map((r,i) => [i+1, r.czas, s.nazwa, r.sku, r.nazwa, r.marka, r.poziom, r.szt_w_opak, r.ilosc, r.lot, r.exp, r.gtin, r.zrodlo, r.kod_surowy].map(csvCell).join(';')).join('\n') + '\n';
+}
+function csvPodsum(s){
+  const h = ['sesja','sku','nazwa','lot','exp','ilosc_opak','szt_w_opak','ilosc_szt','pack_lista_ilosc','status'];
+  return BOM + h.join(';') + '\n' + grupuj(s.skany).map(g => { const l = s.pack.find(l=>pasuje(l,g)); const ile = l?licz(l):''; const st = !s.pack.length?'':!l?'poza_lista':ile>l.ilosc?'za_duzo':ile===l.ilosc?'ok':'brakuje';
+    return [s.nazwa, g.sku, g.nazwa, g.lot, g.exp, g.ilosc, g.szt_w_opak, g.ilosc*(g.poziom==='opakowanie'?g.szt_w_opak:1), l?l.ilosc:'', st].map(csvCell).join(';'); }).join('\n') + '\n';
+}
+function csvAliasy(){ return BOM + 'kod;sku;poziom;nazwa;kiedy\n' + Object.entries(ST.aliasy).map(([k,a]) => [a.kod||k, a.sku, a.poziom, PROD[a.sku]?PROD[a.sku].nazwa:'', a.kiedy||''].map(csvCell).join(';')).join('\n') + '\n'; }
+const slug = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,40) || 'sesja';
+async function zapiszPlik(nazwa, tresc, typ){
+  typ = typ || 'text/csv';
+  const blob = new Blob([tresc], {type: typ+';charset=utf-8'});
+  const file = new File([blob], nazwa, {type: typ});
+  try{ if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:nazwa}); return; } }catch(e){ if(e && e.name==='AbortError') return; }
+  if(window.__dl){ try{ await window.__dl.save({filename:nazwa, data:blob}); return; }catch(e){ if(e && (e.code==='dismissed'||e.code==='cancelled')) return; } }
+  try{ const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nazwa; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 2000); }catch(e){}
+  if(window.__artefakt){ await kopiuj(tresc); toast('Pobieranie niedostępne – CSV skopiowano do schowka'); }
+}
+async function kopiuj(txt){ try{ await navigator.clipboard.writeText(txt); toast('Skopiowano do schowka'); }catch(e){ const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); toast('Skopiowano do schowka'); }catch(_){ toast('Nie udało się skopiować'); } ta.remove(); } }
+function jsonSesji(s){ return JSON.stringify({sesja:s.nazwa, utworzono:s.utworzono, wyeksportowano:teraz(), skany:s.skany, pack_lista:s.pack, podsumowanie:grupuj(s.skany).map(g=>({sku:g.sku,nazwa:g.nazwa,lot:g.lot,exp:g.exp,ilosc_opak:g.ilosc,szt_w_opak:g.szt_w_opak}))}, null, 1); }
+
+/* ======================= DB (artefakt) – opcjonalna synchronizacja dla agentów ======================= */
+let dbRef = null, syncT = null, trybOpis = 'strona WWW (PWA)';
+window.__artefakt = !!(window.claude && typeof window.claude.use === 'function');
+if(window.__artefakt){ trybOpis = 'artefakt claude.ai'; window.claude.use('downloads').then(d => { window.__dl = d; }).catch(()=>{}); window.claude.use('db').then(d => { dbRef = d; if(d) syncDb(); }).catch(()=>{}); }
+function syncDb(){ if(!dbRef) return; clearTimeout(syncT); syncT = setTimeout(async () => { try{ const s = S(); await dbRef.doc('sesje/'+s.id).set({id:s.id, nazwa:s.nazwa, utworzono:s.utworzono, zaktualizowano:teraz(), skany:s.skany, pack_lista:s.pack, podsumowanie:grupuj(s.skany)}); await dbRef.doc('aliasy/wszystkie').set({aliasy:ST.aliasy, zaktualizowano:teraz()}); }catch(e){} }, 1200); }
+
+/* ======================= KAMERA ======================= */
+let reader = null, camOn = false, track = null;
+const FORMATS = () => [ZXing.BarcodeFormat.QR_CODE, ZXing.BarcodeFormat.DATA_MATRIX, ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.ITF, ZXing.BarcodeFormat.CODE_93];
+function fmt(res){ try{ return ZXing.BarcodeFormat[res.getBarcodeFormat()] || ''; }catch(e){ return ''; } }
+function hints(){ const h = new Map(); h.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, FORMATS()); h.set(ZXing.DecodeHintType.ASSUME_GS1, true); h.set(ZXing.DecodeHintType.TRY_HARDER, true); return h; }
+async function startCam(){
+  if(!window.ZXing){ $('camInfo').textContent = 'Biblioteka skanera nie załadowała się. Sprawdź połączenie i odśwież.'; return; }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ trybFoto('Kamera na żywo niedostępna w tym widoku.'); return; }
+  try{
+    reader = new ZXing.BrowserMultiFormatReader(hints(), 150);
+    await reader.decodeFromConstraints({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}}}, $('video'), (res, err) => { if(res) onKod(res.getText(), 'skan', fmt(res)); });
+    camOn = true; $('camOff').hidden = true; $('btnStopCam').hidden = false;
+    try{ const st = $('video').srcObject; track = st && st.getVideoTracks()[0]; const caps = track && track.getCapabilities ? track.getCapabilities() : {}; if(caps && caps.torch) $('btnLatarka').hidden = false; }catch(e){}
+    try{ if(navigator.wakeLock) navigator.wakeLock.request('screen').catch(()=>{}); }catch(e){}
+  }catch(e){
+    camOn = false; trybFoto('Brak dostępu do kamery ('+(e && e.name ? e.name : e)+'). W Safari: aA → Ustawienia witryny → Kamera: Zezwól.');
+  }
+}
+function stopCam(){ try{ reader && reader.reset(); }catch(e){} camOn=false; track=null; $('camOff').hidden=false; $('btnStopCam').hidden=true; $('btnLatarka').hidden=true; $('camInfo').textContent='Kamera wyłączona'; }
+function trybFoto(msg){ $('camInfo').textContent = msg + ' Możesz zrobić zdjęcie kodu.'; $('lblFoto').hidden = false; }
+async function zFoto(file){
+  if(!file || !window.ZXing) return;
+  toast('Odczytuję kod ze zdjęcia…');
+  const url = URL.createObjectURL(file);
+  try{
+    const img = await new Promise((ok, nie) => { const i = new Image(); i.onload = () => ok(i); i.onerror = nie; i.src = url; });
+    const r = reader || new ZXing.BrowserMultiFormatReader(hints());
+    let wynik = null;
+    for(const maxW of [1400, 2200, 3200]){
+      const sc = Math.min(1, maxW / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth*sc); c.height = Math.round(img.naturalHeight*sc);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      try{ wynik = r.decodeFromCanvas(c); if(wynik) break; }catch(e){}
+    }
+    if(wynik) onKod(wynik.getText(), 'foto', fmt(wynik)); else badFlash('Nie odczytano kodu – zrób zdjęcie bliżej, bez odblasków');
+  }catch(e){ badFlash('Błąd odczytu zdjęcia'); }
+  URL.revokeObjectURL(url); $('foto').value='';
+}
+
+/* ======================= SYGNAŁY ======================= */
+let actx = null;
+function beep(ok){ if(!ST.ust.dzwiek) return; try{ actx = actx || new (window.AudioContext||window.webkitAudioContext)(); const o = actx.createOscillator(), g = actx.createGain(); o.connect(g); g.connect(actx.destination); o.frequency.value = ok ? 1200 : 260; g.gain.value = .2; o.start(); o.stop(actx.currentTime + (ok ? .09 : .35)); if(!ok){ const o2 = actx.createOscillator(); o2.connect(g); o2.frequency.value=200; o2.start(actx.currentTime+.4); o2.stop(actx.currentTime+.75); } }catch(e){} }
+function flash(cls){ const f = $('flash'); f.className = 'flash '+cls; setTimeout(()=>{ f.className='flash'; }, 260); }
+function okFlash(msg){ flash('ok'); beep(true); if(navigator.vibrate) navigator.vibrate(40); if(msg) toast(msg); }
+function badFlash(msg){ flash('bad'); beep(false); if(navigator.vibrate) navigator.vibrate([120,60,120]); if(msg) toast(msg, 3500); }
+function blad(msg){ badFlash(msg); }
+let toastT = null;
+function toast(msg, ms){ let t = document.getElementById('toast'); if(!t){ t = document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t); } t.textContent = msg; t.hidden=false; clearTimeout(toastT); toastT = setTimeout(()=>{ t.hidden = true; }, ms||1800); }
+
+/* ======================= ZDARZENIA ======================= */
+function bind(){
+  document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => pokaz(b.dataset.v));
+  $('btnStartCam').onclick = startCam; $('btnStopCam').onclick = stopCam;
+  $('foto').onchange = e => zFoto(e.target.files[0]);
+  $('btnLatarka').onclick = async () => { try{ const on = !($('btnLatarka').dataset.on==='1'); await track.applyConstraints({advanced:[{torch:on}]}); $('btnLatarka').dataset.on = on?'1':'0'; }catch(e){ toast('Latarka niedostępna'); } };
+  const reczny = () => { const v = $('reczny').value.trim(); if(!v) return; $('reczny').value=''; const p = parseGS1(v); if(p.gtin || p.kod_artykulu || krok()!=='PRODUKT') onKod(v, 'recznie'); else { const r = szukaj(v); if(r.length===1) ustawPending(r[0].sku, r[0].poziom, {raw:v}, 'recznie'); else otworzPicker({tytul:'Wybierz produkt', filtr:v, zrodlo:'recznie', parsed:{raw:v}}); } };
+  $('btnReczny').onclick = reczny; $('reczny').addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); reczny(); } });
+  $('btnZListy').onclick = () => otworzPicker({tytul:'Wybierz produkt', zrodlo:'recznie', parsed:{raw:''}});
+  $('btnCofnij').onclick = () => { const s=S(); if(pending){ pending=null; render(); return; } const r = s.skany.pop(); if(r){ save(); toast('Cofnięto: '+r.nazwa); } render(); };
+  $('btnSesja').onclick = () => pokaz('wiecej');
+  $('btnPackWczytaj').onclick = () => { const {out, bledy} = parsujPack($('packText').value); if(!out.length && !bledy.length) return toast('Wklej linie pack listy'); const s = S(); s.pack = s.pack.concat(out); save(); $('packText').value = bledy.join('\n'); toast(out.length+' pozycji wczytano'+(bledy.length?', '+bledy.length+' nierozpoznanych (zostały w polu)':'')); render(); };
+  $('packPlik').onchange = e => { const f = e.target.files[0]; if(!f) return; f.text().then(t => { $('packText').value = t; $('btnPackWczytaj').click(); }); e.target.value=''; };
+  $('btnPackDodaj').onclick = () => otworzPicker({tytul:'Dodaj pozycję pack listy', ilosc:true, parsed:{raw:''}, onWybor:(p, n) => { const s=S(); const l = s.pack.find(l=>l.sku===p.sku && !l.lot && !l.exp); if(l) l.ilosc += n; else s.pack.push({sku:p.sku, nazwa:p.nazwa, lot:'', exp:'', ilosc:n}); save(); render(); }});
+  $('btnPackUsun').onclick = () => confirm2('Usunąć całą pack listę tej sesji?', () => { S().pack = []; save(); render(); });
+  $('btnCsvSkany').onclick = () => { const s=S(); zapiszPlik('skany_'+slug(s.nazwa)+'.csv', csvSkany(s)); };
+  $('btnCsvPodsum').onclick = () => { const s=S(); zapiszPlik('podsumowanie_'+slug(s.nazwa)+'.csv', csvPodsum(s)); };
+  $('btnKopiujCsv').onclick = () => kopiuj(csvSkany(S()));
+  $('btnKopiujJson').onclick = () => kopiuj(jsonSesji(S()));
+  $('btnNowaSesja').onclick = () => prompt2('Nazwa sesji (np. numer zamówienia)', domyslnaNazwa(), v => { nowaSesja(v.trim()||domyslnaNazwa()); pending=null; render(); toast('Nowa sesja'); });
+  $('btnZmienNazwe').onclick = () => prompt2('Nazwa sesji', S().nazwa, v => { if(v.trim()){ S().nazwa = v.trim(); save(); render(); } });
+  $('btnUsunSesje').onclick = () => confirm2('Usunąć sesję „'+S().nazwa+'” z '+S().skany.length+' skanami?', () => { delete ST.sesje[ST.aktualna]; ST.aktualna = Object.keys(ST.sesje)[0] || null; if(!ST.aktualna) nowaSesja(domyslnaNazwa()); pending=null; save(); render(); });
+  $('ustAuto').onchange = e => { ST.ust.auto = e.target.checked; save(); };
+  $('ustDzwiek').onchange = e => { ST.ust.dzwiek = e.target.checked; save(); };
+  $('ustWymagaj').onchange = e => { ST.ust.wymagaj = e.target.checked; save(); };
+  $('btnAliasyCsv').onclick = () => zapiszPlik('kody_nauczone.csv', csvAliasy());
+  $('btnBackup').onclick = () => zapiszPlik('skaner_kopia_'+new Date().toISOString().slice(0,10)+'.json', JSON.stringify(ST, null, 1), 'application/json');
+  $('backupPlik').onchange = e => { const f = e.target.files[0]; if(!f) return; f.text().then(t => { try{ const d = JSON.parse(t); if(!d.sesje) throw 0; confirm2('Wczytać kopię? Sesje o tych samych ID zostaną nadpisane.', () => { Object.assign(ST.sesje, d.sesje); Object.assign(ST.aliasy, d.aliasy||{}); if(d.aktualna && ST.sesje[d.aktualna]) ST.aktualna = d.aktualna; save(); render(); toast('Wczytano kopię'); }); }catch(_){ toast('To nie jest plik kopii skanera'); } }); e.target.value=''; };
+  document.addEventListener('visibilitychange', () => { if(document.hidden && camOn) stopCam(); });
+  document.addEventListener('keydown', e => { if(e.key==='Escape') zamknijModal(); });
+}
+window.SKANER = {parseGS1, parseDate, kandydaci, onKod, parsujPack, csvSkany, csvPodsum, stan:()=>ST, pending:()=>pending, krok};
+init(); bind(); render();
+if('serviceWorker' in navigator && !window.__artefakt && location.protocol.startsWith('http')){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+</script>
