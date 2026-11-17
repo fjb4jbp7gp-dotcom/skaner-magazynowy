@@ -50,24 +50,47 @@ textarea{min-height:120px;font-family:var(--mono);font-size:14px}
 .mono{font-family:var(--mono)}
 .small{font-size:13px}
 /* kamera */
-.cam{position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:4/3;max-height:42vh;width:100%}
-.cam.maly{max-height:24vh;aspect-ratio:16/9}
+.skantop{position:sticky;top:0;z-index:4;background:var(--bg);display:flex;flex-direction:column;gap:6px;margin-top:-12px;padding-top:12px;padding-bottom:4px}
+.cam{position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:4/3;max-height:36vh;width:100%;flex:0 0 auto}
+.cam .hint{position:absolute;left:8px;right:8px;bottom:8px;z-index:2;background:rgba(12,18,28,.84);color:#ffe08a;border-radius:8px;padding:6px 10px;font-size:13px;font-weight:600;line-height:1.3;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cam .hint span{flex:1 1 180px}
+.cam .hint .btn{min-height:34px;padding:4px 10px;font-size:13px}
+.stanbox{display:flex;flex-direction:column;gap:10px;min-height:260px}
+.akcje{display:flex;flex-direction:column;gap:8px}
+.akcje .row>*{flex:1 1 0}
+.ilosci{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:8px}
+.ilosci .btn{font-size:22px;min-height:56px;padding:6px}
+.loty{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.loty .btn{flex-direction:column;gap:2px;min-height:58px;padding:6px 8px}
+.pole-exp{display:flex;gap:8px;align-items:center}
+.pole-exp label{font-weight:700;flex:0 0 auto}
+.pole-exp input{flex:1 1 auto;width:auto;min-width:0}
+.pole-exp .btn{flex:0 0 auto}
+.pole-il{display:flex;gap:8px;flex-wrap:wrap}
+.pole-il input{flex:1 1 80px;width:auto;min-width:0;text-align:center;font-size:22px;font-weight:700}
+.pole-il #ilMinus,.pole-il #ilPlus{flex:0 0 56px;font-size:22px}
+.pole-il #akIlOk{flex:1 1 100%}
 .cam video{width:100%;height:100%;object-fit:cover;display:block}
 .cam canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.diag{font-size:11px;color:var(--muted);margin-top:-6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.diag{font-size:11px;line-height:14px;height:14px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#alertPack .alert{height:56px;font-size:15px;line-height:20px;padding:6px 12px;overflow:hidden;align-items:center}
+#alertPack .alert .t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-height:40px}
 .podp{background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn);border-radius:10px;padding:8px 10px;font-size:14px;font-weight:600;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .podp span{flex:1 1 200px}
 .cam .frame{position:absolute;inset:14% 10%;border:2px solid rgba(255,255,255,.85);border-radius:10px;pointer-events:none;box-shadow:0 0 0 2000px rgba(0,0,0,.18)}
 .cam .flash{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .25s}
 .cam .flash.ok{background:var(--ok);opacity:.55}
 .cam .flash.bad{background:var(--bad);opacity:.6}
+.cam .flash.krok{background:#ffd24a;opacity:.4}
 .cam .off{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#fff;padding:16px;text-align:center}
 .cam .tools{position:absolute;right:8px;top:8px;display:flex;gap:6px}
 .cam .tools button{background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:8px;font:inherit;font-size:13px;padding:6px 10px;min-height:36px}
 /* karta stanu skanowania */
 .stan{border-left:6px solid var(--accent)}
 .stan .krok{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
-.stan .tytul{font-size:22px;font-weight:700;margin:4px 0;text-wrap:balance}
+.stan .tytul{font-size:20px;font-weight:700;margin:2px 0;text-wrap:balance}
+.stan .nazwa{font-size:15px}
+.stan .opis{font-size:13px;margin-top:4px;word-break:break-word}
 .stan .pola{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:15px;margin-top:6px}
 .stan .pola b{font-family:var(--mono);font-weight:600}
 .stan.lot{border-left-color:var(--warn)}
@@ -120,24 +143,28 @@ kbd{font-family:var(--mono);background:var(--accent-soft);border-radius:4px;padd
 
 <!-- ===== SKANUJ ===== -->
 <section class="view" id="v-skan">
-  <div class="cam" id="cam">
-    <video id="video" playsinline muted autoplay></video>
-    <canvas id="nakladka"></canvas>
-    <div class="frame"></div>
-    <div class="flash" id="flash"></div>
-    <div class="tools"><button id="btnKlatka" hidden>Klatka</button><button id="btnZoom" hidden>Zoom 2×</button><button id="btnLatarka" hidden>Latarka</button><button id="btnStopCam" hidden>Stop</button></div>
-    <div class="off" id="camOff">
-      <div id="camInfo">Kamera wyłączona</div>
-      <button class="btn primary" id="btnStartCam">Włącz kamerę</button>
-      <label class="btn" id="lblFoto" hidden>Zrób zdjęcie etykiety <input type="file" id="foto" accept="image/*" capture="environment" hidden></label>
+  <div class="skantop" id="skanTop">
+    <div class="cam" id="cam">
+      <video id="video" playsinline muted autoplay></video>
+      <canvas id="nakladka"></canvas>
+      <div class="frame"></div>
+      <div class="flash" id="flash"></div>
+      <div class="hint" id="podp" hidden></div>
+      <div class="tools"><button id="btnKlatka" hidden>Klatka</button><button id="btnZoom" hidden>Zoom 2×</button><button id="btnLatarka" hidden>Latarka</button><button id="btnStopCam" hidden>Stop</button></div>
+      <div class="off" id="camOff">
+        <div id="camInfo">Kamera wyłączona</div>
+        <button class="btn primary" id="btnStartCam">Włącz kamerę</button>
+        <label class="btn" id="lblFoto" hidden>Zrób zdjęcie etykiety <input type="file" id="foto" accept="image/*" capture="environment" hidden></label>
+      </div>
     </div>
+    <div class="diag mono" id="diag"></div>
+    <div id="alertPack" hidden></div>
   </div>
-  <div class="diag mono" id="diag"></div>
-  <div class="podp" id="podp" hidden></div>
   <div class="podp" id="nowaWersja" hidden><span>Jest nowsza wersja aplikacji.</span> <button class="btn small" id="btnOdswiez">Odśwież</button></div>
-  <div id="alertPack" hidden></div>
-  <div class="card stan" id="stan"></div>
-  <div class="row" id="stanAkcje"></div>
+  <div class="stanbox">
+    <div class="card stan" id="stan"></div>
+    <div class="akcje" id="stanAkcje"></div>
+  </div>
   <div class="card">
     <div class="row">
       <input type="text" id="reczny" placeholder="Wpisz kod, REF lub nazwę…" autocomplete="off" autocapitalize="characters">
@@ -147,7 +174,7 @@ kbd{font-family:var(--mono);background:var(--accent-soft);border-radius:4px;padd
       <button class="btn" id="btnZListy">Wybierz z listy</button>
       <button class="btn" id="btnCofnij">Cofnij ostatni</button>
     </div>
-    <label style="display:flex;gap:10px;align-items:center;min-height:44px;margin-top:6px"><input type="checkbox" id="ustKartony" style="width:22px;height:22px"> Przyjmuję kartony zbiorcze (pytaj o liczbę opakowań)</label>
+    <label style="display:flex;gap:10px;align-items:center;min-height:44px;margin-top:6px"><input type="checkbox" id="ustKartony" style="width:22px;height:22px"> Kartony bez osobnego kodu (Curea): każdy skan to karton</label>
   </div>
   <div class="card ostatni" id="ostatni"></div>
 </section>
@@ -221,7 +248,7 @@ kbd{font-family:var(--mono);background:var(--accent-soft);border-radius:4px;padd
 <script src="zxing-wasm-reader.js"></script>
 <script>
 /* ======================= DANE ======================= */
-const WERSJA = '5';   // ta sama wartość co w pliku wersja.txt
+const WERSJA = '6';   // ta sama wartość co w pliku wersja.txt
 const DB = window.PRODUKTY || {produkty:[], indeks_kodow:{}};
 const PROD = {}; DB.produkty.forEach(p => PROD[p.sku] = p);
 const KEY = 'skaner-sp.v1';
@@ -372,8 +399,11 @@ function jestProduktem(p){
   return kandydaci(p).length > 0;   // goły numer lub tekst tylko wtedy, gdy znamy go z bazy / kodów nauczonych
 }
 function expZPamieci(){ if(pending && pending.lot && !pending.exp){ const e = ST.lotExp[kluczLot(pending.sku, pending.lot)]; if(e){ pending.exp = e; pending.expZPamieci = true; } } }
+const zFerris = p => !!p && (p.marka==='PolyMem' || p.marka==='Nursicare');   // case PolyMem: zawsze pytamy, ile opakowań zostało
+const pelnyKarton = p => (zFerris(p) && p.opak_w_kartonie > 0) ? p.opak_w_kartonie : 0;
 function podpowiedzIlosci(){ // skąd wziąć domyślną liczbę opakowań w kartonie
   const p = PROD[pending.sku]; const kl = kluczLot(pending.sku, pending.lot);
+  if(pelnyKarton(p)) return {n:pelnyKarton(p), skad:'pełny karton'};
   if(pending.lot && ST.kartonLot[kl]) return {n:ST.kartonLot[kl], skad:'ostatnio dla LOT '+pending.lot};
   if(pending.ilosc37) return {n:pending.ilosc37, skad:'z kodu kartonu'};
   if(ST.kartonSku[p.sku]) return {n:ST.kartonSku[p.sku], skad:'ostatnio dla tego produktu (inny LOT)'};
@@ -383,8 +413,12 @@ function podpowiedzIlosci(){ // skąd wziąć domyślną liczbę opakowań w kar
 function dalej(zrodlo){ // po każdej zmianie rozpoczętej pozycji: uzupełnij z pamięci i zapisz, gdy komplet
   if(!pending) return;
   expZPamieci();
-  if(krok()==='ILOSC' && !ST.ust.pytajKarton && pending.lot){ const z = ST.kartonLot[kluczLot(pending.sku, pending.lot)]; if(z){ pending.ilosc = z; pending.iloscOk = true; } }   // ten sam LOT → ta sama ilość
-  if(krok()==='GOTOWE') zatwierdz(zrodlo || pending.zrodlo); else { okFlash(); render(); }
+  if(krok()==='ILOSC' && !ST.ust.pytajKarton && !zFerris(PROD[pending.sku]) && pending.lot){ const z = ST.kartonLot[kluczLot(pending.sku, pending.lot)]; if(z){ pending.ilosc = z; pending.iloscOk = true; } }   // ten sam LOT → ta sama ilość
+  const k = krok();
+  if(k==='GOTOWE') return zatwierdz(zrodlo || pending.zrodlo);
+  const p = PROD[pending.sku];
+  sygnal(k==='LOT' && !(zFerris(p) && pending.poziom!=='karton') ? 'krok' : 'uwaga');   // LOT do zeskanowania = „tuk”; dane do wpisania = „pip-pip”
+  render();
 }
 function zastosujLotExp(p, zrodlo){ // kod LOT / EXP dla rozpoczętej pozycji; true = coś uzupełniono
   if(!pending || p.raw===pending.raw || toLink(p.raw)) return false;
@@ -477,7 +511,7 @@ function nieznany(p, zrodlo){
 }
 function ustawPending(sku, poziom, p, zrodlo){
   const prod = PROD[sku];
-  let pz = poziom||prod.poziom; if(ST.ust.kartony && pz==='opakowanie') pz = 'karton';   // tryb przyjęcia kartonów
+  let pz = poziom||prod.poziom; if(ST.ust.kartony && pz==='opakowanie' && !(prod.kody && prod.kody.karton && prod.kody.karton.length)) pz = 'karton';   // tryb kartonów: tylko produkty bez osobnego kodu kartonu (Curea)
   pending = {sku, poziom: pz, gtin: p.gtin||'', lot: p.lot||'', exp: p.exp||'', raw: p.raw||'', zrodlo: zrodlo||'skan', ilosc37: p.ilosc37||0};
   const s = S(); const last = s.skany[s.skany.length-1];
   if(ST.ust.auto && last && last.sku===sku && (last.lot||last.exp)){ if(!pending.lot) pending.lot=last.lot; if(!pending.exp) pending.exp=last.exp; }
@@ -592,45 +626,62 @@ function render(){
   if(widok==='wiecej') renderWiecej();
 }
 let krokOst = '';
+const miesiac = d => String(d||'').slice(0,7);
+function znaneLoty(sku){ // LOT-y tego produktu: z bieżącej sesji i z pamięci EXP, najnowsze pierwsze
+  const ref = (PROD[sku] && PROD[sku].ref) || sku; const out = [];
+  const dodaj = (lot, exp) => { lot = String(lot||'').toUpperCase(); if(lot && !out.some(x => x.lot===lot)) out.push({lot, exp: exp || ST.lotExp[ref+'|'+lot] || ''}); };
+  S().skany.slice().reverse().forEach(r => { if(((PROD[r.sku] && PROD[r.sku].ref) || r.sku)===ref) dodaj(r.lot, r.exp); });
+  Object.keys(ST.lotExp).reverse().forEach(k => { const i = k.indexOf('|'); if(k.slice(0,i)===ref) dodaj(k.slice(i+1), ST.lotExp[k]); });
+  return out.slice(0, 4);
+}
 function renderStan(){
   const el = $('stan'), ak = $('stanAkcje'); const k = krok();
   el.className = 'card stan ' + (k==='LOT'?'lot':(k==='EXP'||k==='ILOSC')?'exp':'');
-  $('cam').classList.toggle('maly', !!pending);
   if(!pending){
-    el.innerHTML = `<div class="krok">Krok 1 z 3${ST.ust.kartony ? ' · tryb kartonów' : ''}</div><div class="tytul">Skieruj kamerę na etykietę</div><div class="muted small">${ST.ust.kartony ? 'Tryb kartonów: każdy skan to karton zbiorczy – zapytam o liczbę opakowań w środku (raz na LOT).' : 'Kod produktu i kod LOT z tej samej etykiety odczytują się razem (zielona i żółta ramka). Datę EXP z nadruku podajesz raz na LOT, potem jest podpowiadana.'}</div>`;
-    ak.innerHTML = ''; krokOst = ''; $('cam').classList.remove('maly'); return;
+    el.innerHTML = `<div class="krok">Gotowy do skanowania${ST.ust.kartony ? ' · kartony Curea' : ''}</div><div class="tytul">Skieruj kamerę na etykietę</div><div class="muted small">PolyMem: etykieta kartonu (CASE) – kod produktu i LOT czytają się razem. Curea: mała naklejka z kwadratowym kodem.</div>`;
+    ak.innerHTML = ''; krokOst = ''; return;
   }
   const p = PROD[pending.sku]; const kart = pending.poziom==='karton';
-  const pola = `<div class="pola"><span class="muted">Produkt</span><b>${esc(p.sku)}</b><span class="muted">Opak.</span><b>${p.szt_w_opak} szt.${kart ? ' · karton zbiorczy' : pending.poziom!=='opakowanie' ? ' (kod '+esc(pending.poziom)+')':''}</b><span class="muted">LOT</span><b>${esc(pending.lot||'—')}</b><span class="muted">EXP</span><b>${esc(pending.exp||'—')}</b></div>`;
-  if(k==='ILOSC'){ // karton zbiorczy: ile opakowań w środku
-    const podp = podpowiedzIlosci();
-    el.innerHTML = `<div class="krok">Karton zbiorczy · ${esc(p.marka)}</div><div class="tytul">Ile opakowań w kartonie?</div><div>${esc(p.nazwa)}</div>${pola}<div class="muted small">${podp.skad ? 'Podpowiedź: '+esc(podp.skad)+'. ' : ''}${pending.lot ? 'Ilość zapamiętam dla tego LOT-u – kolejne kartony zapiszą się same.' : 'Bez LOT-u zapytam przy każdym kartonie.'}</div>`;
-    ak.innerHTML = `<button class="btn" id="ilMinus" style="flex:0 0 60px;font-size:24px">−</button><input type="number" id="ilKarton" inputmode="numeric" min="1" value="${esc(podp.n)}" placeholder="opak." aria-label="Liczba opakowań w kartonie" style="flex:1 1 90px;width:auto;text-align:center;font-size:24px;font-weight:700"><button class="btn" id="ilPlus" style="flex:0 0 60px;font-size:24px">+</button>
-      <button class="btn primary" id="akIlOk" style="flex:1 1 100%">Zapisz karton</button>
-      <button class="btn" id="akNieKarton">To jedno opakowanie</button><button class="btn danger" id="akAnuluj">Anuluj</button>`;
-    const pole = $('ilKarton'); const zmien = d => { pole.value = Math.max(1, (parseInt(pole.value, 10) || 0) + d); };
-    $('ilMinus').onclick = () => zmien(-1); $('ilPlus').onclick = () => zmien(1);
-    const ok = () => { const n = parseInt(pole.value, 10); if(!(n > 0)) return toast('Podaj liczbę opakowań w kartonie'); pending.ilosc = n; pending.iloscOk = true; dalej(pending.zrodlo); };
-    $('akIlOk').onclick = ok; pole.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); ok(); } });
+  const opis = `<div class="opis mono">LOT ${esc(pending.lot||'—')} · EXP ${esc(miesiac(pending.exp)||'—')}${pending.poziom!=='opakowanie' && !kart ? ' · '+esc(pending.poziom) : ''}</div>`;
+  const anuluj = () => { pending = null; render(); };
+
+  if(kart && (k==='EXP' || k==='ILOSC')){ // karton: EXP (jeśli brak) i liczba opakowań na jednym ekranie
+    const pk = pelnyKarton(p), podp = podpowiedzIlosci(), brakExp = k==='EXP', szybkie = pk > 0 && pk <= 12;
+    el.innerHTML = `<div class="krok">Karton zbiorczy · ${esc(p.marka)}</div><div class="tytul">${pk ? 'Ile opakowań zostało w kartonie?' : 'Ile opakowań w kartonie?'}</div><div class="nazwa">${esc(p.nazwa)}</div>${opis}<div class="muted small">${pk ? 'Pełny karton: '+pk+' op. × '+p.szt_w_opak+' szt.' : podp.skad ? 'Podpowiedź: '+esc(podp.skad)+'.' : ''}${brakExp ? ' Data EXP z nadruku – raz na LOT.' : ''}</div>`;
+    ak.innerHTML = `${brakExp ? '<div class="pole-exp"><label for="expMies">EXP</label><input type="month" id="expMies"><button class="btn small" id="akBezExp">Bez EXP</button></div>' : ''}
+      ${szybkie ? `<div class="ilosci">${Array.from({length:pk}, (_,i) => i+1).map(n => `<button class="btn${n===pk ? ' primary' : ''}" data-n="${n}">${n}</button>`).join('')}</div>`
+        : `<div class="pole-il"><button class="btn" id="ilMinus">−</button><input type="number" id="ilKarton" inputmode="numeric" min="1" value="${esc(podp.n)}" placeholder="opak." aria-label="Liczba opakowań w kartonie"><button class="btn" id="ilPlus">+</button><button class="btn primary" id="akIlOk">Zapisz karton</button></div>`}
+      <div class="row"><button class="btn" id="akNieKarton">To jedno opakowanie</button><button class="btn danger" id="akAnuluj">Anuluj</button></div>`;
+    const zapisz = n => {
+      if(!(n > 0)) return toast('Podaj liczbę opakowań');
+      if(brakExp && !pending.expPominiety){ const d = parseDate($('expMies').value); if(!d){ sygnal('blad'); return toast('Najpierw wybierz miesiąc i rok EXP z nadruku', 2500); } pending.exp = d; }
+      pending.ilosc = n; pending.iloscOk = true; dalej(pending.zrodlo);
+    };
+    ak.querySelectorAll('.ilosci button').forEach(b => b.onclick = () => zapisz(parseInt(b.dataset.n, 10)));
+    if(!szybkie){
+      const pole = $('ilKarton'); const zmien = d => { pole.value = Math.max(1, (parseInt(pole.value, 10) || 0) + d); };
+      $('ilMinus').onclick = () => zmien(-1); $('ilPlus').onclick = () => zmien(1);
+      $('akIlOk').onclick = () => zapisz(parseInt(pole.value, 10));
+      pole.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); zapisz(parseInt(pole.value, 10)); } });
+    }
+    const be = $('akBezExp'); if(be) be.onclick = () => { pending.expPominiety = true; be.disabled = true; be.textContent = 'EXP pominięty'; $('expMies').disabled = true; };
     $('akNieKarton').onclick = () => { const a = pending.gtin && ST.aliasy[norm(pending.gtin)]; if(a && a.poziom==='karton'){ a.poziom = 'opakowanie'; save(); } pending.poziom = 'opakowanie'; dalej(pending.zrodlo); };
-    $('akAnuluj').onclick = () => { pending=null; render(); };
-    if(krokOst!=='ILOSC'){ try{ $('stanAkcje').scrollIntoView({block:'nearest', behavior:'smooth'}); }catch(e){} } krokOst = k;
+    $('akAnuluj').onclick = anuluj; krokOst = k;
     return;
   }
-  el.innerHTML = `<div class="krok">Krok ${k==='LOT'?'2':'3'} z 3 · ${esc(p.marka)}</div><div class="tytul">${k==='LOT'?'Zeskanuj kod LOT':'Podaj datę ważności (EXP)'}</div>${k==='EXP'?'<div class="muted small">EXP jest na etykiecie nadrukiem przy klepsydrze (np. 2031-06). Wybierz miesiąc i rok poniżej.</div>':''}<div>${esc(p.nazwa)}</div>${pola}`;
-  const s = S(); const last = s.skany[s.skany.length-1];
-  ak.innerHTML = `
-    ${k==='EXP' ? '<input type="month" id="expMies" aria-label="EXP: miesiąc i rok"><button class="btn primary" id="akExpOk">Zapisz EXP</button>' : ''}
-    <button class="btn" id="akWpisz">Wpisz ${k==='LOT'?'LOT':'pełną datę'}</button>
-    ${last && (last.lot||last.exp) ? `<button class="btn" id="akJakPoprz">Jak poprzednio<br><span class="small mono">${esc(last.lot||'—')} · ${esc(last.exp||'—')}</span></button>`:''}
-    ${ST.ust.wymagaj ? '' : `<button class="btn ok" id="akPomin">${kart ? 'Dalej' : 'Zapisz'} bez ${k==='LOT'?'LOT/EXP':'EXP'}</button>`}
-    <button class="btn danger" id="akAnuluj">Anuluj</button>`;
-  $('akWpisz').onclick = () => prompt2(k==='LOT'?'LOT':'EXP (RRRR-MM-DD)', '', v => { if(!v.trim()) return; if(k==='LOT') pending.lot=v.trim(); else pending.exp = parseDate(v)||v.trim(); dalej('recznie'); });
-  if(k==='EXP' && krokOst!=='EXP'){ try{ $('stanAkcje').scrollIntoView({block:'nearest', behavior:'smooth'}); }catch(e){} } krokOst = k;
-  const eo = $('akExpOk'); if(eo) eo.onclick = () => { const v = $('expMies').value; const d = parseDate(v); if(!d) return toast('Wybierz miesiąc i rok EXP'); pending.exp = d; dalej(pending.zrodlo); };
-  const jp = $('akJakPoprz'); if(jp) jp.onclick = () => { pending.lot = pending.lot||last.lot; pending.exp = pending.exp||last.exp; dalej('skan'); };
+
+  // pojedyncze opakowanie: LOT, potem EXP
+  const bezKoduLot = zFerris(p) && !kart;   // pudełko PolyMem nie ma kodu LOT – LOT jest tylko nadrukiem
+  const loty = k==='LOT' ? znaneLoty(pending.sku) : [];
+  el.innerHTML = `<div class="krok">${k==='LOT' ? 'Krok 2 z 3' : 'Krok 3 z 3'} · ${esc(p.marka)}</div><div class="tytul">${k==='LOT' ? (bezKoduLot ? 'Wybierz LOT tego opakowania' : 'Zeskanuj kod LOT') : 'Podaj datę ważności (EXP)'}</div><div class="nazwa">${esc(p.nazwa)}</div>${opis}${k==='LOT' && bezKoduLot ? '<div class="muted small">Na pudełku PolyMem LOT jest tylko nadrukiem. Wybierz LOT z kartonu albo wpisz z nadruku.</div>' : ''}${k==='EXP' ? '<div class="muted small">EXP jest nadrukiem przy klepsydrze (np. 2031-06).</div>' : ''}`;
+  ak.innerHTML = `${loty.length ? `<div class="loty">${loty.map((x,i) => `<button class="btn" data-i="${i}"><span class="mono">LOT ${esc(x.lot)}</span><span class="small muted">EXP ${esc(miesiac(x.exp)||'?')}</span></button>`).join('')}</div>` : ''}
+    ${k==='EXP' ? '<div class="pole-exp"><label for="expMies">EXP</label><input type="month" id="expMies"><button class="btn primary" id="akExpOk">Zapisz</button></div>' : ''}
+    <div class="row"><button class="btn" id="akWpisz">Wpisz ${k==='LOT' ? 'LOT' : 'pełną datę'}</button>${ST.ust.wymagaj ? '' : `<button class="btn ok" id="akPomin">Zapisz bez ${k==='LOT' ? 'LOT/EXP' : 'EXP'}</button>`}<button class="btn danger" id="akAnuluj">Anuluj</button></div>`;
+  ak.querySelectorAll('.loty button').forEach(b => b.onclick = () => { const x = loty[+b.dataset.i]; pending.lot = x.lot; if(x.exp && !pending.exp) pending.exp = x.exp; dalej('recznie'); });
+  $('akWpisz').onclick = () => prompt2(k==='LOT' ? 'LOT' : 'EXP (RRRR-MM-DD)', '', v => { if(!v.trim()) return; if(k==='LOT') pending.lot = v.trim().toUpperCase(); else pending.exp = parseDate(v)||v.trim(); dalej('recznie'); });
+  const eo = $('akExpOk'); if(eo) eo.onclick = () => { const d = parseDate($('expMies').value); if(!d) return toast('Wybierz miesiąc i rok EXP'); pending.exp = d; dalej(pending.zrodlo); };
   const pm = $('akPomin'); if(pm) pm.onclick = () => { pending.lotPominiety = true; pending.expPominiety = true; dalej(pending.zrodlo); };
-  $('akAnuluj').onclick = () => { pending=null; render(); };
+  $('akAnuluj').onclick = anuluj; krokOst = k;
 }
 function renderOstatni(){
   const s = S(); const el = $('ostatni'); const last = s.skany[s.skany.length-1];
@@ -647,10 +698,11 @@ function renderPackAlert(){
   const zaDuzo = st.filter(x => x.ile > x.l.ilosc); const brak = st.filter(x => x.ile < x.l.ilosc);
   const poza = s.skany.filter(r => !s.pack.some(l => pasuje(l, r)));
   el.hidden = false;
-  if(zaDuzo.length){ const x = zaDuzo[0]; el.innerHTML = `<div class="alert bad">⚠ ZA DUŻO: ${esc(x.l.nazwa)}${x.l.lot?' LOT '+esc(x.l.lot):''} — jest ${x.ile}, miało być ${x.l.ilosc}</div>`; }
-  else if(poza.length){ el.innerHTML = `<div class="alert warn">⚠ Poza pack listą: ${esc(poza[poza.length-1].nazwa)} (${poza.length} opak.)</div>`; }
-  else if(!brak.length){ el.innerHTML = `<div class="alert ok">✓ Zamówienie kompletne: ${s.pack.length} pozycji, ${st.reduce((a,x)=>a+x.ile,0)} opak.</div>`; }
-  else { const x = brak[0]; el.innerHTML = `<div class="alert warn" style="font-weight:600">Pack lista: ${s.pack.length-brak.length}/${s.pack.length} pozycji OK · teraz: ${esc(x.l.nazwa)} ${x.ile}/${x.l.ilosc}</div>`; }
+  const pasek = (kl, txt, styl) => `<div class="alert ${kl}"${styl ? ' style="'+styl+'"' : ''}><span class="t">${txt}</span></div>`;
+  if(zaDuzo.length){ const x = zaDuzo[0]; el.innerHTML = pasek('bad', `⚠ ZA DUŻO: jest ${x.ile}, miało być ${x.l.ilosc} · ${esc(x.l.nazwa)}${x.l.lot?' LOT '+esc(x.l.lot):''}`); }
+  else if(poza.length){ el.innerHTML = pasek('warn', `⚠ Poza pack listą (${poza.length} opak.): ${esc(poza[poza.length-1].nazwa)}`); }
+  else if(!brak.length){ el.innerHTML = pasek('ok', `✓ Zamówienie kompletne: ${s.pack.length} pozycji, ${st.reduce((a,x)=>a+x.ile,0)} opak.`); }
+  else { const x = brak[0]; el.innerHTML = pasek('warn', `${x.ile}/${x.l.ilosc} · ${esc(x.l.nazwa)} · pozycje OK ${s.pack.length-brak.length}/${s.pack.length}`, 'font-weight:600'); }
 }
 function grupuj(skany){
   const m = new Map();
@@ -854,7 +906,7 @@ function rysujRamki(an, w, h){ // obrysy rozpoznanych kodów na podglądzie (wid
   const sk = Math.max(W/w, H/h), dx = (W - w*sk)/2, dy = (H - h*sk)/2;
   an.forEach(a => { const p = a.r.pos; if(!p) return; g.beginPath(); [p.topLeft, p.topRight, p.bottomRight, p.bottomLeft].forEach((q,i) => { const x = dx + q.x*sk, y = dy + q.y*sk; if(i) g.lineTo(x,y); else g.moveTo(x,y); }); g.closePath(); g.lineWidth = 3; g.strokeStyle = a.prod ? '#3ddc84' : '#ffd24a'; g.stroke(); g.fillStyle = a.prod ? 'rgba(61,220,132,.18)' : 'rgba(255,210,74,.18)'; g.fill(); });
 }
-let widzeOst = '', ramW = 1, ramH = 1;
+let widzeOst = '', ramW = 1, ramH = 1, hintT = 0;
 function ustawWidze(msg, an, zPrzyciskiem){
   an = an || [];
   if(camOn) rysujRamki(an, ramW, ramH);
@@ -863,6 +915,7 @@ function ustawWidze(msg, an, zPrzyciskiem){
   const txt = 'v' + WERSJA + ' · ' + (camOn ? '● ' + v.videoWidth + '×' + v.videoHeight + ' · ' + msKlatki + ' ms · klatek ' + klatki + ' · ' : '') + silnik + (kody ? ' · widzę: ' + kody : '');
   $('diag').textContent = txt;
   const klucz = (msg||'') + '|' + (zPrzyciskiem ? kodBezProduktu : '');
+  if(msg) hintT = Date.now(); else if(camOn && widzeOst !== '|' && Date.now() - hintT < 1500) return;   // bez migania
   if(klucz !== widzeOst){ widzeOst = klucz; const el = $('podp'); el.hidden = !msg; el.innerHTML = msg ? '<span>'+esc(msg)+'</span>' + (zPrzyciskiem ? ' <button class="btn small" id="btnUzyjKodu">To jest kod produktu</button>' : '') : ''; const b = $('btnUzyjKodu'); if(b) b.onclick = () => { const raw = kodBezProduktu; nieznany(parseGS1(raw, '', false), 'skan'); }; }
 }
 async function zFoto(file){
@@ -886,17 +939,40 @@ async function zFoto(file){
 }
 
 /* ======================= SYGNAŁY ======================= */
-let actx = null;
-function beep(ok){ if(!ST.ust.dzwiek) return; try{ actx = actx || new (window.AudioContext||window.webkitAudioContext)(); const o = actx.createOscillator(), g = actx.createGain(); o.connect(g); g.connect(actx.destination); o.frequency.value = ok ? 1200 : 260; g.gain.value = .2; o.start(); o.stop(actx.currentTime + (ok ? .09 : .35)); if(!ok){ const o2 = actx.createOscillator(); o2.connect(g); o2.frequency.value=200; o2.start(actx.currentTime+.4); o2.stop(actx.currentTime+.75); } }catch(e){} }
+// Cztery różne sygnały: zapis pozycji, krok przyjęty (skanuj dalej), potrzebne dane na ekranie, błąd
+let actx = null, audioOdblok = false;
+function audio(){ try{ actx = actx || new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); }catch(e){ return null; } return actx; }
+function odblokujAudio(){ const a = audio(); if(!a || audioOdblok) return; try{ const b = a.createBuffer(1, 1, 22050); const z = a.createBufferSource(); z.buffer = b; z.connect(a.destination); z.start(0); audioOdblok = true; }catch(e){} }   // iOS: dźwięk działa dopiero po dotknięciu
+function ton(f, t0, dl, typ, gl){ const a = actx; const o = a.createOscillator(), g = a.createGain(); o.type = typ||'sine'; o.frequency.value = f; o.connect(g); g.connect(a.destination); const t = a.currentTime + t0; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gl||0.3, t+0.012); g.gain.exponentialRampToValueAtTime(0.0001, t+dl); o.start(t); o.stop(t+dl+0.03); }
+const DZW = {
+  zapis: [[880,0,.10],[1175,.10,.10],[1568,.20,.22]],                      // trzy rosnące tony – pozycja ZAPISANA
+  krok:  [[600,0,.07,'triangle',.25]],                                       // jedno krótkie „tuk” – przyjęte, skanuj dalej
+  uwaga: [[700,0,.12,'square',.10],[700,.20,.12,'square',.10]],            // dwa „pip-pip” – podaj dane na ekranie
+  blad:  [[260,0,.32,'sawtooth',.16],[200,.40,.35,'sawtooth',.16]]          // niski brzęczyk – błąd / za dużo
+};
+const WIBR = {zapis:70, krok:20, uwaga:[50,60,50], blad:[120,60,120]};
 function flash(cls){ const f = $('flash'); f.className = 'flash '+cls; setTimeout(()=>{ f.className='flash'; }, 260); }
-function okFlash(msg){ flash('ok'); beep(true); if(navigator.vibrate) navigator.vibrate(40); if(msg) toast(msg); }
-function badFlash(msg){ flash('bad'); beep(false); if(navigator.vibrate) navigator.vibrate([120,60,120]); if(msg) toast(msg, 3500); }
+let sygT = null;
+function sygnal(typ, msg){ // sygnały pośrednie czekają chwilę: produkt i LOT z tej samej klatki dają jeden dźwięk, nie dwa
+  clearTimeout(sygT);
+  if(typ==='krok' || typ==='uwaga'){ sygT = setTimeout(() => graj(typ, msg), 150); return; }
+  graj(typ, msg);
+}
+function graj(typ, msg){
+  flash(typ==='zapis' ? 'ok' : typ==='blad' ? 'bad' : 'krok');
+  if(ST.ust.dzwiek && audio()){ try{ DZW[typ].forEach(x => ton(x[0], x[1], x[2], x[3], x[4])); }catch(e){} }
+  try{ if(navigator.vibrate && navigator.userActivation && navigator.userActivation.hasBeenActive) navigator.vibrate(WIBR[typ]); }catch(e){}
+  if(msg) toast(msg, typ==='blad' ? 3500 : 1800);
+}
+function okFlash(msg){ sygnal('zapis', msg); }
+function badFlash(msg){ sygnal('blad', msg); }
 function blad(msg){ badFlash(msg); }
 let toastT = null;
 function toast(msg, ms){ let t = document.getElementById('toast'); if(!t){ t = document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t); } t.textContent = msg; t.hidden=false; clearTimeout(toastT); toastT = setTimeout(()=>{ t.hidden = true; }, ms||1800); }
 
 /* ======================= ZDARZENIA ======================= */
 function bind(){
+  ['touchend','click'].forEach(ev => document.addEventListener(ev, odblokujAudio, {passive:true}));
   document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => pokaz(b.dataset.v));
   $('btnStartCam').onclick = startCam; $('btnStopCam').onclick = stopCam;
   $('foto').onchange = e => zFoto(e.target.files[0]);

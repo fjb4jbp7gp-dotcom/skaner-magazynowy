@@ -43,6 +43,18 @@ z tym samym GTIN są łączone w jedną pozycję, więc wystarczy jedna klatka z
 to adres strony producenta – jest pomijany. EXP z pack listy porównuje się po roku i miesiącu (`2031-08` pasuje
 do `2031-08-01` z kodu).
 
+**Sygnały (od v6).** Trzy rosnące tony + zielony błysk = pozycja ZAPISANA. Jedno krótkie „tuk” + żółty błysk =
+krok przyjęty, skanuj dalej (np. Curea: produkt z EAN, czeka na kod z LOT). Dwa „pip-pip” + żółty błysk = potrzebne
+dane na ekranie (EXP, liczba opakowań, wybór LOT). Niski brzęczyk = błąd lub ZA DUŻO. Produkt i LOT z tej samej
+klatki dają jeden sygnał. Kamera jest przyklejona u góry ekranu i nie zmienia rozmiaru; podpowiedzi pokazują się
+na podglądzie, a pasek pack listy ma stałą wysokość (2 linie, liczby na początku).
+
+**PolyMem: case (od v6).** Pudełka PolyMem nie mają kodu LOT ani EXP; case ma kod produktu i kod LOT. Skanuj case –
+aplikacja rozpoznaje go jako karton i **zawsze** pyta „Ile opakowań zostało w kartonie?” z przyciskami 1…N, gdzie
+N = pełny karton z arkusza Ferris (np. 5044 = 4 op. × 15 szt.), podświetlony. Przy nowym LOT-cie na tym samym
+ekranie jest pole EXP (raz na LOT, potem z pamięci). Ostatnie luźne pudełko: zeskanuj kod pudełka i wybierz LOT
+z przycisków (LOT-y tego REF z sesji i z pamięci, z EXP). Curea zachowuje pamięć ilości na LOT.
+
 **Kartony zbiorcze** (przyjęcie dostawy). Karton zapisuje się jako produkt „op. N szt.” z `poziom=karton`
 i `ilosc_opak` = liczba opakowań w kartonie. Po rozpoznaniu produktu, LOT i EXP aplikacja pyta
 „Ile opakowań w kartonie?” i pamięta odpowiedź **osobno dla każdego produktu i LOT-u** – kolejne kartony tego
