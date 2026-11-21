@@ -131,6 +131,23 @@ details summary{cursor:pointer;font-weight:600;padding:6px 0}
 kbd{font-family:var(--mono);background:var(--accent-soft);border-radius:4px;padding:1px 5px;font-size:13px}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 @media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+.dni{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+.dni button{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:999px;padding:8px 12px;font:inherit;font-size:14px;font-weight:600;min-height:40px}
+.dni button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.dni button .k{font-weight:400;opacity:.8}
+button.pl{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 6px;border:0;border-bottom:1px solid var(--line);align-items:center;width:100%;background:none;font:inherit;color:inherit;text-align:left;min-height:56px}
+button.pl.akt{background:var(--accent-soft);border-radius:8px}
+.modal .lista button.pl{display:grid;padding:10px 6px}
+button.pl .n{font-size:19px;font-weight:800;overflow-wrap:anywhere}
+button.pl .m{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+button.pl .c{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+button.pl .postep{grid-column:1/-1;margin-top:4px}
+button.pl.wyl{opacity:.55}
+.komplet{font-size:24px;font-weight:800;color:var(--ok);text-align:center;padding:8px 0;text-wrap:balance}
+.cam .flash.komplet{background:var(--ok);opacity:.8}
+#alertPack .alert .btn{flex:0 0 auto;min-height:40px;padding:6px 10px;font-size:14px;margin-left:auto}
+#alertPack .alert .t{flex:1 1 auto;min-width:0}
+.uwaga{font-size:13px;color:var(--warn);font-weight:600}
 @media (min-width:700px){ main{max-width:760px;margin:0 auto;width:100%} nav.tabs{max-width:760px;margin:0 auto;border-left:1px solid var(--line);border-right:1px solid var(--line)} }
 </style>
 
@@ -189,18 +206,32 @@ kbd{font-family:var(--mono);background:var(--accent-soft);border-radius:4px;padd
 <!-- ===== PACK LISTA ===== -->
 <section class="view" id="v-pack" hidden>
   <div class="card">
-    <h2>Pack lista zamówienia</h2>
-    <p class="small muted" style="margin:0 0 8px">Jedna linia = jedna pozycja: <kbd>SKU lub nazwa ; LOT ; EXP ; ilość opakowań</kbd>. LOT i EXP można pominąć (wtedy liczy się tylko produkt). Separator: średnik, tabulator lub przecinek.</p>
+    <h2>Pack listy dnia</h2>
+    <div id="plKluczBox" class="podp" style="flex-direction:column;align-items:stretch" hidden>
+      <span>Klucz pack list – wpisuje się raz na telefonie. Na Macu polecenie <kbd>python3 bin/packlisty_skaner.py klucz</kbd> kopiuje go do schowka; tu dotknij „Wklej klucz”.</span>
+      <div class="row"><input type="text" id="plKlucz" placeholder="SPKLUCZ:…" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn small" id="btnPlWklej" style="flex:0 0 auto">Wklej klucz</button><button class="btn small primary" id="btnPlKluczOk" style="flex:0 0 auto">Zapisz</button></div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn primary" id="btnPackWczytaj">Wczytaj pack listy</button>
+      <button class="btn" id="btnPlCsv">CSV: wszystkie listy dnia</button>
+    </div>
+    <div class="small muted" id="plStatus" style="margin-top:6px"></div>
+    <div class="dni" id="plDni" style="margin-top:8px"></div>
+    <div id="plListy" style="margin-top:4px"></div>
+  </div>
+  <div class="card"><h2 id="packTytul">Pozycje i postęp</h2><div class="small muted" id="packMeta" style="margin:-4px 0 6px"></div><div id="packTabela"></div>
+    <div class="row" style="margin-top:8px"><button class="btn danger small" id="btnPackUsun">Usuń pack listę</button></div>
+  </div>
+  <details class="card"><summary>Ręczna pack lista (wklej linie albo plik CSV)</summary>
+    <p class="small muted" style="margin:6px 0 8px">Jedna linia = jedna pozycja: <kbd>SKU lub nazwa ; LOT ; EXP ; ilość opakowań</kbd>. LOT i EXP można pominąć (wtedy liczy się tylko produkt). Separator: średnik, tabulator lub przecinek. Dotyczy bieżącej sesji.</p>
     <textarea id="packText" placeholder="P1-100100-10;;;10&#10;5044;ABC123;2027-12-31;4&#10;Curea P1 20x20 cm op. 10 szt.;;;6"></textarea>
     <div class="row" style="margin-top:8px">
-      <button class="btn primary" id="btnPackWczytaj">Wczytaj pack listę</button>
+      <button class="btn primary" id="btnPackZPola">Wczytaj z pola</button>
       <label class="btn">Plik CSV <input type="file" id="packPlik" accept=".csv,.txt,text/csv,text/plain" hidden></label>
       <button class="btn" id="btnPackDodaj">Dodaj z listy produktów</button>
     </div>
-  </div>
-  <div class="card"><h2>Pozycje i postęp</h2><div id="packTabela"></div>
-    <div class="row" style="margin-top:8px"><button class="btn danger small" id="btnPackUsun">Usuń pack listę</button></div>
-  </div>
+  </details>
+  <div class="row"><button class="btn small" id="btnPlZmienKlucz">Zmień klucz pack list</button></div>
 </section>
 
 <!-- ===== WIĘCEJ ===== -->
@@ -227,7 +258,8 @@ kbd{font-family:var(--mono);background:var(--accent-soft);border-radius:4px;padd
   </div>
   <div class="card"><h2>Kartony: zapamiętane ilości (produkt i LOT → opakowań)</h2><div id="kartonyLista" class="small"></div></div>
   <div class="card"><h2>Kody nauczone (nieznane kody → produkt)</h2><div id="aliasyLista" class="small"></div>
-    <div class="row" style="margin-top:8px"><button class="btn small" id="btnAliasyCsv">Eksport kody_nauczone.csv</button></div>
+    <div class="row" style="margin-top:8px"><button class="btn small" id="btnAliasyCsv">Eksport kody_nauczone.csv</button><button class="btn small" id="btnMapaCsv">Eksport mapowanie_pozycji.csv</button></div>
+    <div id="mapaLista" class="small" style="margin-top:8px"></div>
   </div>
   <div class="card"><h2>Kopia zapasowa</h2>
     <div class="row"><button class="btn" id="btnBackup">Zapisz kopię (JSON)</button><label class="btn">Wczytaj kopię <input type="file" id="backupPlik" accept=".json,application/json" hidden></label></div>
@@ -248,7 +280,7 @@ kbd{font-family:var(--mono);background:var(--accent-soft);border-radius:4px;padd
 <script src="zxing-wasm-reader.js"></script>
 <script>
 /* ======================= DANE ======================= */
-const WERSJA = '6';   // ta sama wartość co w pliku wersja.txt
+const WERSJA = '7';   // ta sama wartość co w pliku wersja.txt
 const DB = window.PRODUKTY || {produkty:[], indeks_kodow:{}};
 const PROD = {}; DB.produkty.forEach(p => PROD[p.sku] = p);
 const KEY = 'skaner-sp.v1';
@@ -264,6 +296,8 @@ function init(){
   ST.ust = Object.assign({auto:false, dzwiek:true, wymagaj:false, kartony:false, pytajKarton:false}, ST.ust||{});
   ST.lotExp = ST.lotExp || {};
   ST.kartonLot = ST.kartonLot || {};   // REF|LOT → liczba opakowań w kartonie (bywa różna między LOT-ami)
+  ST.pl = Object.assign({klucz:'', dane:null, dzien:'', pobranoMs:0, blad:''}, ST.pl||{});   // pack listy dnia z repo (zaszyfrowane)
+  ST.mapPoz = ST.mapPoz || {};         // nazwa pozycji z zamówienia → SKU (przypisane na telefonie)
   ST.kartonSku = ST.kartonSku || {};   // SKU → ostatnio podana liczba opakowań w kartonie (podpowiedź dla nowego LOT-u)   // pamięć: REF|LOT → EXP (data z nadruku podawana raz na LOT)
   if(!ST.aktualna || !ST.sesje[ST.aktualna]) nowaSesja(domyslnaNazwa());
 }
@@ -456,6 +490,8 @@ const kluczBlok = p => p.gtin ? 'g:' + norm(p.gtin) : 'r:' + p.raw;
 const toLink = raw => /^(https?:\/\/|www\.)/i.test(String(raw||'').trim());
 function zKlatki(wyn, w, h, foto){
   const t = Date.now(); if(!foto){ ramW = w; ramH = h; }
+  const kq = wyn.find(r => /^SPKLUCZ:/.test(r.raw||''));   // kod QR z kluczem pack list
+  if(kq){ if(kluczZTekstu(kq.raw)!==ST.pl.klucz){ ustawKlucz(kq.raw); sygnal('zapis'); } return; }
   wyn = wyn.filter(r => !toLink(r.raw));          // kody QR z adresem strony (marketing) pomijamy
   const sr = r => { if(!r.pos) return [w/2, h/2]; const P = [r.pos.topLeft, r.pos.topRight, r.pos.bottomRight, r.pos.bottomLeft]; return [P.reduce((a,q)=>a+q.x,0)/4, P.reduce((a,q)=>a+q.y,0)/4]; };
   const an = wyn.map(r => { const p = parseGS1(r.raw, r.format, r.gs1); const c = sr(r); return {r, p, c, d: Math.hypot(c[0]-w/2, c[1]-h/2), prod: jestProduktem(p)}; }).sort((a,b) => a.d-b.d);
@@ -519,18 +555,80 @@ function ustawPending(sku, poziom, p, zrodlo){
 }
 function zatwierdz(zrodlo){
   if(!pending) return;
-  const prod = PROD[pending.sku]; const s = S();
+  const prod = PROD[pending.sku];
   const ilosc = pending.poziom==='karton' ? Math.max(1, parseInt(pending.ilosc, 10) || prod.opak_w_kartonie || 1) : 1;   // karton zbiorczy = N opakowań
   const rec = {id:uid(), czas:teraz(), sku:prod.sku, nazwa:prod.nazwa, marka:prod.marka, poziom:pending.poziom, szt_w_opak:prod.szt_w_opak,
                ilosc, lot:(pending.lot||'').toUpperCase(), exp:pending.exp||'', gtin:pending.gtin||'', zrodlo:zrodlo||pending.zrodlo||'skan', kod_surowy:pending.raw||''};
+  { const kb = kluczBlok(pending); blok[kb] = (pending.lot||'').toUpperCase(); ostatnioWidziane[kb] = Date.now(); }   // ta sama etykieta w kadrze nie liczy się drugi raz
+  pending = null;
+  // pozycja w sztukach (np. Allegro: 6 szt. z opakowania 15): gdy zostało mniej niż całe opakowanie – pytamy o sztuki
+  const s = S();
+  const lSzt = s.pack.find(l => l.jedn==='szt' && l.sku && refOf(l.sku)===refOf(rec.sku) && lotOk(l, rec));
+  if(lSzt && rec.poziom!=='sztuka' && !s.pack.some(l => l.jedn!=='szt' && pasuje(l, rec))){
+    const zost = lSzt.ilosc - licz(lSzt, s);
+    if(zost > 0 && zost < sztuk(rec)){ pytajSztuki(rec, zost); render(); return; }   // nic nie zostało → zapis i „za dużo”
+  }
+  zapiszRec(rec);
+}
+function zapiszRec(rec){
+  const s = S(); const przed = s.pack.length ? stanSesji(s).komplet : false;
   s.skany.push(rec);
   if(rec.lot && rec.exp) ST.lotExp[kluczLot(rec.sku, rec.lot)] = rec.exp;
-  if(rec.poziom==='karton'){ ST.kartonSku[rec.sku] = ilosc; if(rec.lot) ST.kartonLot[kluczLot(rec.sku, rec.lot)] = ilosc; }
-  { const kb = kluczBlok(pending); blok[kb] = (pending.lot||'').toUpperCase(); ostatnioWidziane[kb] = Date.now(); }   // ta sama etykieta w kadrze nie liczy się drugi raz
-  pending = null; save();
-  const st = sprawdzPack(rec);
-  if(st==='za_duzo') badFlash('ZA DUŻO: '+prod.nazwa); else okFlash('Zapisano: '+prod.nazwa+(rec.poziom==='karton'?' (karton = '+ilosc+' opak.)':''));
-  render();
+  if(rec.poziom==='karton'){ ST.kartonSku[rec.sku] = rec.ilosc; if(rec.lot) ST.kartonLot[kluczLot(rec.sku, rec.lot)] = rec.ilosc; }
+  save(); poZapisie(rec, przed); render();
+}
+function poZapisie(rec, przed){
+  const s = S(); const st = sprawdzPack(rec);
+  if(blokadaPL(s)) return badFlash('Ta lista: '+blokadaPL(s));
+  if(st==='za_duzo') return badFlash('ZA DUŻO: '+rec.nazwa);
+  if(st==='poza'){ if(s.pack.some(l => !l.sku)){ sygnal('uwaga'); return pytajPrzypisanie(rec, przed); } return badFlash('Nie ma na liście: '+rec.nazwa); }
+  if(st && !przed && stanSesji(s).komplet){ graj('komplet'); setTimeout(pokazKomplet, 450); return; }
+  okFlash('Zapisano: '+rec.nazwa+(rec.poziom==='karton'?' (karton = '+rec.ilosc+' opak.)':''));
+}
+function pytajSztuki(rec, zost){
+  zamknijModal(); sygnal('uwaga');
+  const wPaczce = sztuk(rec), maks = Math.min(wPaczce, 15), cel = Math.max(1, Math.min(zost, wPaczce));
+  const box = document.createElement('div'); box.className='modal'; box.id='modal';
+  box.innerHTML = `<div class="box"><h3>Ile sztuk wydajesz z tego opakowania?</h3>
+    <div class="small muted">${esc(rec.nazwa)} · LOT ${esc(rec.lot||'—')} · do wydania zostało <b>${Math.max(0, zost)} szt.</b></div>
+    <div class="ilosci" style="margin-top:10px">${Array.from({length:maks}, (_,i) => i+1).map(n => `<button class="btn${n===cel ? ' primary' : ''}" data-n="${n}">${n}</button>`).join('')}</div>
+    <div class="row" style="margin-top:8px"><input type="number" id="szIle" inputmode="numeric" min="1" value="${cel}" aria-label="Liczba sztuk"><button class="btn primary" id="szOk" style="flex:0 0 auto">Zapisz sztuki</button></div>
+    <div class="row" style="margin-top:8px"><button class="btn" id="szCale">Całe opakowanie (${wPaczce} szt.)</button><button class="btn danger" id="szNie">Anuluj</button></div></div>`;
+  document.body.appendChild(box);
+  const zapisz = n => {
+    if(!(n > 0)) return toast('Podaj liczbę sztuk'); zamknijModal();
+    if(n >= wPaczce && rec.poziom!=='karton') return zapiszRec(rec);
+    const ps = DB.produkty.find(x => x.ref===refOf(rec.sku) && x.poziom==='sztuka');
+    zapiszRec(Object.assign({}, rec, {sku: ps ? ps.sku : rec.sku, nazwa: ps ? ps.nazwa : rec.nazwa+' (sztuki)', poziom:'sztuka', szt_w_opak:1, ilosc:n}));
+  };
+  box.querySelectorAll('.ilosci button').forEach(b => b.onclick = () => zapisz(parseInt(b.dataset.n, 10)));
+  box.querySelector('#szOk').onclick = () => zapisz(parseInt(box.querySelector('#szIle').value, 10));
+  box.querySelector('#szCale').onclick = () => { zamknijModal(); zapiszRec(rec); };
+  box.querySelector('#szNie').onclick = () => { zamknijModal(); toast('Skan anulowany'); };
+}
+function pytajPrzypisanie(rec, przed){
+  const s = S(); const wolne = s.pack.filter(l => !l.sku);
+  zamknijModal();
+  const box = document.createElement('div'); box.className='modal'; box.id='modal';
+  box.innerHTML = `<div class="box"><h3>Tego produktu nie ma na liście ${esc(s.nazwa)}</h3>
+    <div class="small muted">Zeskanowano: <b>${esc(rec.nazwa)}</b>. Czy to któraś z nierozpoznanych pozycji zamówienia? Wybór zostanie zapamiętany.</div>
+    <div class="lista" id="przLista">${wolne.map((l,i) => `<button data-i="${i}">${esc(l.nazwa_zam||l.nazwa)}<span class="s">zamówiono ${l.ilosc} ${l.jedn==='szt'?'szt.':'op.'}</span></button>`).join('')}</div>
+    <div class="row" style="margin-top:8px"><button class="btn" id="przNie">Nie – zostaw poza listą</button><button class="btn danger" id="przCofnij">Cofnij skan</button></div></div>`;
+  document.body.appendChild(box);
+  box.querySelectorAll('#przLista button').forEach(b => b.onclick = () => { zamknijModal(); przypisz(wolne[+b.dataset.i], PROD[rec.sku]);
+    if(rec.poziom==='sztuka' && wolne[+b.dataset.i].jedn!=='szt') wolne[+b.dataset.i].jedn = 'szt';
+    save(); poZapisie(rec, przed); render(); });
+  box.querySelector('#przNie').onclick = () => { zamknijModal(); badFlash('Poza listą: '+rec.nazwa); render(); };
+  box.querySelector('#przCofnij').onclick = () => { zamknijModal(); s.skany = s.skany.filter(r => r.id!==rec.id); save(); toast('Cofnięto skan'); render(); };
+}
+function przypisz(l, p){
+  if(!l || !p) return;
+  l.sku = p.sku; l.nazwa = p.nazwa; l.jedn = p.poziom==='sztuka' ? 'szt' : 'op';
+  if(l.nazwa_zam){
+    const k = kluczMapy(l.nazwa_zam); ST.mapPoz[k] = {sku:p.sku, nazwa_zam:l.nazwa_zam, kiedy:teraz()};
+    Object.values(ST.sesje).forEach(o => (o.pack||[]).forEach(x => { if(!x.sku && x.nazwa_zam && kluczMapy(x.nazwa_zam)===k){ x.sku = p.sku; x.nazwa = p.nazwa; x.jedn = l.jedn; } }));
+  }
+  save(); toast('Przypisano: '+p.nazwa);
 }
 function sprawdzPack(rec){ // status pozycji pack listy po dodaniu skanu
   const s = S(); if(!s.pack.length) return null;
@@ -538,9 +636,13 @@ function sprawdzPack(rec){ // status pozycji pack listy po dodaniu skanu
   const ile = licz(linia); return ile>linia.ilosc ? 'za_duzo' : (ile===linia.ilosc ? 'ok' : 'czesc');
 }
 // EXP porównujemy po roku i miesiącu: nadruk/pack lista podają „2031-08”, kod GS1 pełną datę „2031-08-01”
-const pasuje = (l, r) => l.sku===r.sku && (!l.lot || l.lot.toUpperCase()===(r.lot||'').toUpperCase()) && (!l.exp || String(l.exp).slice(0,7)===String(r.exp||'').slice(0,7));
-const licz = l => S().skany.filter(r => pasuje(l, r)).reduce((a,r)=>a+r.ilosc,0);
+const refOf = sku => (PROD[sku] && PROD[sku].ref) || sku;
+const lotOk = (l, r) => (!l.lot || l.lot.toUpperCase()===(r.lot||'').toUpperCase()) && (!l.exp || String(l.exp).slice(0,7)===String(r.exp||'').slice(0,7));
+// pozycja w opakowaniach (jedn op): ten sam SKU; w sztukach (jedn szt): ten sam REF, liczone sztuki
+const pasuje = (l, r) => !!l.sku && (l.jedn==='szt' ? refOf(l.sku)===refOf(r.sku) : (l.sku===r.sku && r.poziom!=='sztuka')) && lotOk(l, r);
+const licz = (l, s) => (s||S()).skany.filter(r => pasuje(l, r)).reduce((a,r) => a + (l.jedn==='szt' ? sztuk(r) : r.ilosc), 0);
 const sztuk = r => r.poziom==='sztuka' ? r.ilosc : r.ilosc*(r.szt_w_opak||1);
+const jedn = l => l.jedn==='szt' ? 'szt.' : 'op.';
 
 /* ======================= PICKER ======================= */
 let picker = null;
@@ -689,24 +791,30 @@ function renderOstatni(){
   if(!last){ el.innerHTML = `<div class="n">0</div><div><b>Brak skanów w tej sesji</b><div class="small muted">Każde zeskanowane opakowanie = 1 pozycja.</div></div>`; return; }
   const g = s.skany.filter(r => r.sku===last.sku && r.lot===last.lot && r.exp===last.exp).reduce((a,r)=>a+r.ilosc,0);
   el.innerHTML = `<div class="n">${n}</div><div style="min-width:0"><b>Ostatni: ${esc(last.nazwa)}</b><div class="small mono muted">LOT ${esc(last.lot||'—')} · EXP ${esc(last.exp||'—')} · ${last.poziom==='karton' ? 'karton '+last.ilosc+' opak. · ' : ''}ten LOT: ${g} opak. · ${esc(last.czas.slice(11))}</div></div><button class="btn small" id="btnPlus1" style="flex:0 0 auto">+1 takie samo</button>`;
-  $('btnPlus1').onclick = () => { const s2 = S(); const r = s2.skany[s2.skany.length-1]; if(!r) return; const kopia = Object.assign({}, r, {id:uid(), czas:teraz(), zrodlo:'recznie', kod_surowy:''}); s2.skany.push(kopia); save(); if(sprawdzPack(kopia)==='za_duzo') badFlash('ZA DUŻO: '+r.nazwa); else okFlash(); render(); };
+  $('btnPlus1').onclick = () => { const s2 = S(); const r = s2.skany[s2.skany.length-1]; if(!r) return; const kopia = Object.assign({}, r, {id:uid(), czas:teraz(), zrodlo:'recznie', kod_surowy:''}); zapiszRec(kopia); };
 }
 function renderPackAlert(){
   const s = S(); const el = $('alertPack');
-  if(!s.pack.length){ el.hidden = true; return; }
-  const st = s.pack.map(l => ({l, ile:licz(l)}));
-  const zaDuzo = st.filter(x => x.ile > x.l.ilosc); const brak = st.filter(x => x.ile < x.l.ilosc);
-  const poza = s.skany.filter(r => !s.pack.some(l => pasuje(l, r)));
+  if(!s.pack.length && !s.pl){ el.hidden = true; return; }
   el.hidden = false;
-  const pasek = (kl, txt, styl) => `<div class="alert ${kl}"${styl ? ' style="'+styl+'"' : ''}><span class="t">${txt}</span></div>`;
-  if(zaDuzo.length){ const x = zaDuzo[0]; el.innerHTML = pasek('bad', `⚠ ZA DUŻO: jest ${x.ile}, miało być ${x.l.ilosc} · ${esc(x.l.nazwa)}${x.l.lot?' LOT '+esc(x.l.lot):''}`); }
-  else if(poza.length){ el.innerHTML = pasek('warn', `⚠ Poza pack listą (${poza.length} opak.): ${esc(poza[poza.length-1].nazwa)}`); }
-  else if(!brak.length){ el.innerHTML = pasek('ok', `✓ Zamówienie kompletne: ${s.pack.length} pozycji, ${st.reduce((a,x)=>a+x.ile,0)} opak.`); }
-  else { const x = brak[0]; el.innerHTML = pasek('warn', `${x.ile}/${x.l.ilosc} · ${esc(x.l.nazwa)} · pozycje OK ${s.pack.length-brak.length}/${s.pack.length}`, 'font-weight:600'); }
+  const st = stanSesji(s); const nm = s.pl ? '<b>'+esc(s.nazwa)+'</b> · ' : '';
+  const nx = st.komplet && s.pl ? nastepnaPL() : null;
+  const btn = nx ? '<button class="btn small ok" id="btnNast">Następna ›</button>' : ST.pl.dane ? '<button class="btn small" id="btnListy">Listy</button>' : '';
+  const pasek = (kl, txt, styl) => `<div class="alert ${kl}"${styl ? ' style="'+styl+'"' : ''}><span class="t">${txt}</span>${btn}</div>`;
+  const bl = blokadaPL(s);
+  if(bl) el.innerHTML = pasek('bad', nm+'⚠ '+esc(bl));
+  else if(st.zaDuzo.length){ const x = st.zaDuzo[0]; el.innerHTML = pasek('bad', nm+`⚠ ZA DUŻO: jest ${x.ile}, miało być ${x.l.ilosc} ${jedn(x.l)} · ${esc(x.l.nazwa)}${x.l.lot?' LOT '+esc(x.l.lot):''}`); }
+  else if(st.poza.length) el.innerHTML = pasek('warn', nm+`⚠ Poza listą (${st.poza.length}): ${esc(st.poza[st.poza.length-1].nazwa)}`);
+  else if(st.komplet) el.innerHTML = pasek('ok', nm+`✓ Komplet: ${s.pack.length} poz., ${st.jest} ${s.pack.every(l=>l.jedn==='szt')?'szt.':'op.'}`);
+  else if(!s.pack.length) el.innerHTML = pasek('warn', nm+'Lista bez pozycji');
+  else { const x = st.lin.find(x => x.l.sku && x.ile < x.l.ilosc) || st.lin.find(x => !x.l.sku);
+    el.innerHTML = pasek('warn', nm + (x.l.sku ? `${x.ile}/${x.l.ilosc} ${jedn(x.l)} · ${esc(x.l.nazwa)}` : `⚠ bez SKU: ${esc(x.l.nazwa_zam||x.l.nazwa)} – zeskanuj, przypiszę`) + ` · OK ${st.lin.filter(y => y.l.sku && y.ile===y.l.ilosc).length}/${s.pack.length}`, 'font-weight:600'); }
+  const bn = $('btnNast'); if(bn) bn.onclick = () => aktywujPL(nx.l, nx.dzien);
+  const bli = $('btnListy'); if(bli) bli.onclick = otworzListy;
 }
 function grupuj(skany){
   const m = new Map();
-  skany.forEach(r => { const k = r.sku+'|'+r.lot+'|'+r.exp; if(!m.has(k)) m.set(k, {sku:r.sku, nazwa:r.nazwa, marka:r.marka, lot:r.lot, exp:r.exp, szt_w_opak:r.szt_w_opak, poziom:r.poziom, ilosc:0, ids:[]}); const g=m.get(k); g.ilosc+=r.ilosc; g.ids.push(r.id); });
+  skany.forEach(r => { const k = r.sku+'|'+r.lot+'|'+r.exp+(r.poziom==='sztuka'?'|s':''); if(!m.has(k)) m.set(k, {sku:r.sku, nazwa:r.nazwa, marka:r.marka, lot:r.lot, exp:r.exp, szt_w_opak:r.szt_w_opak, poziom:r.poziom, ilosc:0, ids:[]}); const g=m.get(k); g.ilosc+=r.ilosc; g.ids.push(r.id); });
   return [...m.values()].sort((a,b)=> a.nazwa.localeCompare(b.nazwa,'pl') || a.lot.localeCompare(b.lot));
 }
 function renderLista(){
@@ -730,12 +838,21 @@ function renderLista(){
   t.innerHTML = s.skany.length ? `<table><tr><th>Czas</th><th>Produkt</th><th>LOT</th><th>EXP</th><th>Źródło</th></tr>${s.skany.slice().reverse().map(r=>`<tr><td class="mono small">${esc(r.czas.slice(5))}</td><td>${esc(r.nazwa)}</td><td class="mono">${esc(r.lot||'—')}</td><td class="mono">${esc(r.exp||'—')}</td><td class="small muted">${esc(r.zrodlo)}</td></tr>`).join('')}</table>` : '<div class="muted">Brak</div>';
 }
 function renderPack(){
+  renderPL();
   const s = S(); const el = $('packTabela');
-  if(!s.pack.length){ el.innerHTML = '<div class="muted">Brak pack listy. Wklej linie powyżej lub dodaj pozycje z listy produktów.</div>'; return; }
-  el.innerHTML = s.pack.map((l,i) => { const ile = licz(l); const st = ile>l.ilosc?'bad':ile===l.ilosc?'ok':ile?'warn':''; const pct = Math.min(100, Math.round(100*ile/l.ilosc));
-    return `<div class="grupa"><div style="min-width:0"><div class="nazwa">${esc(l.nazwa)} ${st==='bad'?'<span class="pill bad">za dużo</span>':st==='ok'?'<span class="pill ok">OK</span>':''}</div><div class="meta">${esc(l.sku)} · LOT ${esc(l.lot||'dowolny')} · EXP ${esc(l.exp||'dowolny')}</div><div class="postep"><i class="${st}" style="width:${pct}%"></i></div></div><div class="ile">${ile}/${l.ilosc}</div>
-      <div class="akcje"><button class="btn" data-i="${i}" data-a="qty">Ilość</button><button class="btn danger" data-i="${i}" data-a="del">Usuń</button></div></div>`; }).join('');
-  el.querySelectorAll('button').forEach(b => { const i=+b.dataset.i; if(b.dataset.a==='del') b.onclick = () => { s.pack.splice(i,1); save(); render(); }; else b.onclick = () => prompt2('Ilość opakowań', s.pack[i].ilosc, v => { const n=parseInt(v,10); if(n>0){ s.pack[i].ilosc=n; save(); render(); } }); });
+  $('packTytul').textContent = s.pl ? 'Aktywna lista: '+s.nazwa : 'Pack lista sesji: '+s.nazwa;
+  $('packMeta').innerHTML = s.pl ? esc([s.pl.zrodlo, s.pl.klient + (s.pl.nick ? ' ('+s.pl.nick+')' : ''), s.pl.nr, s.pl.dostawa].filter(Boolean).join(' · ')) + ((s.pl.flagi||[]).length ? '<div class="uwaga">⚠ '+esc(s.pl.flagi.join('; '))+'</div>' : '') + (s.pl.brak ? '<div class="uwaga">Tej listy nie ma już w ostatnim pliku pack list – sprawdź, czy zamówienie nie zostało anulowane.</div>' : '') : '';
+  if(!s.pack.length){ el.innerHTML = '<div class="muted">Brak pozycji. Wybierz pack listę powyżej albo wklej ją ręcznie (sekcja niżej).</div>'; return; }
+  el.innerHTML = s.pack.map((l,i) => { const ile = licz(l); const st = !l.sku?'warn':ile>l.ilosc?'bad':ile===l.ilosc?'ok':ile?'warn':''; const pct = Math.min(100, Math.round(100*ile/l.ilosc));
+    return `<div class="grupa"><div style="min-width:0"><div class="nazwa">${l.sku ? esc(l.nazwa) : '⚠ '+esc(l.nazwa_zam||l.nazwa)} ${!l.sku?'<span class="pill warn">bez SKU</span>':st==='bad'?'<span class="pill bad">za dużo</span>':st==='ok'?'<span class="pill ok">OK</span>':''}</div>
+      <div class="meta">${l.sku ? esc(l.sku)+' · '+(l.jedn==='szt'?'w sztukach · ':'')+'LOT '+esc(l.lot||'dowolny')+' · EXP '+esc(l.exp||'dowolny') : 'zeskanuj produkt – zapytam, czy to ta pozycja – albo „Przypisz”'}</div>
+      ${l.sku && l.nazwa_zam && l.nazwa_zam!==l.nazwa ? `<div class="small muted">w zamówieniu: ${esc(l.nazwa_zam)}</div>` : ''}${l.uwaga ? `<div class="uwaga">${esc(l.uwaga)}</div>` : ''}
+      <div class="postep"><i class="${st}" style="width:${pct}%"></i></div></div><div class="ile">${ile}/${l.ilosc}<div class="small muted" style="font-size:12px;font-weight:600">${jedn(l)}</div></div>
+      <div class="akcje">${!l.sku ? `<button class="btn" data-i="${i}" data-a="map">Przypisz</button>` : ''}<button class="btn" data-i="${i}" data-a="qty">Ilość</button><button class="btn danger" data-i="${i}" data-a="del">Usuń</button></div></div>`; }).join('');
+  el.querySelectorAll('button').forEach(b => { const i=+b.dataset.i;
+    if(b.dataset.a==='del') b.onclick = () => { s.pack.splice(i,1); save(); render(); };
+    else if(b.dataset.a==='map') b.onclick = () => otworzPicker({tytul:'Który to produkt?', parsed:{raw:s.pack[i].nazwa_zam||''}, filtr:'', onWybor:p => { przypisz(s.pack[i], p); render(); }});
+    else b.onclick = () => prompt2('Ilość ('+jedn(s.pack[i])+')', s.pack[i].ilosc, v => { const n=parseInt(v,10); if(n>0){ s.pack[i].ilosc=n; s.pack[i].recznaIlosc=true; save(); render(); } }); });
 }
 function renderWiecej(){
   const el = $('sesjeLista');
@@ -748,6 +865,9 @@ function renderWiecej(){
   const al = Object.entries(ST.aliasy);
   $('aliasyLista').innerHTML = al.length ? al.map(([k,a]) => `<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)"><span class="grow"><span class="mono">${esc(a.kod||k)}</span> → ${esc(PROD[a.sku]?PROD[a.sku].nazwa:a.sku)}</span><button class="btn small" data-k="${esc(k)}">Usuń</button></div>`).join('') : '<div class="muted">Brak. Gdy zeskanujesz nieznany kod i wybierzesz produkt, kod zostanie tu zapamiętany.</div>';
   $('aliasyLista').querySelectorAll('button').forEach(b => b.onclick = () => { delete ST.aliasy[b.dataset.k]; save(); render(); });
+  const mp = Object.entries(ST.mapPoz);
+  $('mapaLista').innerHTML = mp.length ? '<div class="muted" style="margin-bottom:4px">Pozycje zamówień przypisane do produktów:</div>' + mp.map(([k,m]) => `<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)"><span class="grow">${esc(m.nazwa_zam||k)} → ${esc(PROD[m.sku]?PROD[m.sku].nazwa:m.sku)}</span><button class="btn small" data-k="${esc(k)}">Usuń</button></div>`).join('') : '';
+  $('mapaLista').querySelectorAll('button').forEach(b => b.onclick = () => { delete ST.mapPoz[b.dataset.k]; save(); render(); });
   $('info').innerHTML = `Baza produktów: ${DB.produkty.length} pozycji (${DB.produkty.filter(p=>p.sprzedawany).length} sprzedawanych), ${Object.keys(DB.indeks_kodow).length} kodów, wygenerowana ${esc(DB.wygenerowano||'?')}.<br>Wersja ${WERSJA}. Tryb: ${trybOpis}, silnik kodów: ${silnik}, zapamiętane EXP dla ${Object.keys(ST.lotExp).length} LOT-ów. Dane są zapisane w tej przeglądarce (telefonie) – eksportuj CSV po każdej sesji.`;
 }
 
@@ -771,6 +891,184 @@ function parsujPack(txt){
   return {out, bledy};
 }
 
+/* ======================= PACK LISTY DNIA (Allegro, poczta, sklepy) ======================= */
+// Mac (bin/packlisty_skaner.py) zapisuje packlisty/packlisty.enc w repo skanera: AES-256-CBC + HMAC-SHA256.
+// Repo jest publiczne – bez klucza z pęku kluczy Maca pliku nie da się odczytać. Jedna lista = jedno zamówienie.
+const PL_API = 'https://api.github.com/repos/fjb4jbp7gp-dotcom/skaner-magazynowy/contents/packlisty/packlisty.enc?ref=main';
+const PL_PAGES = 'packlisty/packlisty.enc';   // ta sama strona (GitHub Pages; lokalnie: serwer testowy)
+const DNI_TYG = ['nd','pon','wt','śr','czw','pt','sob'];
+let plPokazKlucz = false, plTrwa = false;
+const b64u = t => { t = String(t).replace(/-/g,'+').replace(/_/g,'/'); while(t.length % 4) t += '='; const b = atob(t); const u = new Uint8Array(b.length); for(let i=0;i<b.length;i++) u[i] = b.charCodeAt(i); return u; };
+const kluczMapy = t => String(t||'').replace(/ł/g,'l').replace(/Ł/g,'L').normalize('NFKD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+function kluczZTekstu(t){ t = String(t||''); const m = /SPKLUCZ:\s*([A-Za-z0-9_-]{40,})/.exec(t) || /^\s*([A-Za-z0-9_-]{43})\s*$/.exec(t); return m ? m[1] : ''; }
+function ustawKlucz(t, cicho){ const k = kluczZTekstu(t); if(!k){ toast('To nie wygląda na klucz pack list'); return false; } ST.pl.klucz = k; ST.pl.blad = ''; save(); if(!cicho) toast('Klucz zapisany'); pobierzPL(false); return true; }
+async function odszyfrujPL(env, klucz){
+  const sub = crypto.subtle, te = new TextEncoder();
+  const master = await sub.importKey('raw', b64u(klucz || ST.pl.klucz), {name:'HMAC', hash:'SHA-256'}, false, ['sign']);
+  const ek = new Uint8Array(await sub.sign('HMAC', master, te.encode('sp-packlisty-enc')));
+  const mk = new Uint8Array(await sub.sign('HMAC', master, te.encode('sp-packlisty-mac')));
+  const iv = b64u(env.iv), ct = b64u(env.ct), mac = b64u(env.mac);
+  const dane = new Uint8Array(iv.length + ct.length); dane.set(iv); dane.set(ct, iv.length);
+  const kmac = await sub.importKey('raw', mk, {name:'HMAC', hash:'SHA-256'}, false, ['verify']);
+  if(!(await sub.verify('HMAC', kmac, mac, dane))) throw new Error('zły klucz albo uszkodzony plik');
+  const kaes = await sub.importKey('raw', ek, {name:'AES-CBC'}, false, ['decrypt']);
+  return JSON.parse(new TextDecoder().decode(await sub.decrypt({name:'AES-CBC', iv}, kaes, ct)));
+}
+async function pobierzPL(cicho){
+  if(plTrwa) return;
+  if(!ST.pl.klucz){ if(!cicho){ plPokazKlucz = true; toast('Najpierw wklej klucz pack list'); pokaz('pack'); } return; }
+  if(!window.crypto || !crypto.subtle){ if(!cicho) toast('Ta przeglądarka nie odszyfruje pack list (potrzebne https)'); return; }
+  plTrwa = true; if(!cicho){ toast('Pobieram pack listy…', 8000); const st = $('plStatus'); if(st) st.textContent = 'Pobieram…'; }
+  try{
+    let env = null, blad = 'brak pliku';
+    const zrodla = [[PL_API, {headers:{Accept:'application/vnd.github.raw+json'}, cache:'no-store'}], [PL_PAGES+'?t='+Date.now(), {cache:'no-store'}]];
+    if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) zrodla.reverse();   // test lokalny: najpierw plik z serwera testowego
+    for(const [url, opt] of zrodla){
+      try{ const r = await fetch(url, opt); if(r.ok){ env = await r.json(); break; } blad = 'HTTP '+r.status; }catch(e){ blad = 'brak sieci'; }
+    }
+    if(!env) throw new Error(blad);
+    const d = await odszyfrujPL(env);
+    ST.pl.dane = d; ST.pl.pobranoMs = Date.now(); ST.pl.blad = '';
+    if(!cicho || !ST.pl.dzien || !d.dni.some(x => x.dzien===ST.pl.dzien)) ST.pl.dzien = domyslnyDzien(d);
+    odswiezSesjePL(); save();
+    const dz = dzienPL();
+    if(!cicho) toast('Pack listy z '+String(d.wygenerowano||'?').slice(0,16)+' · '+(dz ? etykietaDnia(dz.dzien)+': '+dz.listy.length+' list' : 'brak list'), 2500);
+  }catch(e){ ST.pl.blad = e.message || String(e); save(); if(!cicho) badFlash('Nie pobrano pack list: '+ST.pl.blad); }
+  plTrwa = false; render();
+}
+const dzisISO = () => { const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+function domyslnyDzien(d){ const dz = d.dni.map(x => x.dzien).sort(); return dz.find(x => x >= dzisISO()) || dz[dz.length-1] || ''; }
+function etykietaDnia(iso){ const [y,m,d] = String(iso).split('-').map(Number); if(!y) return iso; return DNI_TYG[new Date(y, m-1, d).getDay()]+' '+String(d).padStart(2,'0')+'.'+String(m).padStart(2,'0'); }
+const dzienPL = () => ST.pl.dane && ST.pl.dane.dni.find(x => x.dzien===ST.pl.dzien);
+const idPL = l => 'pl|'+l.klucz;
+function liniePL(lista){
+  return lista.pozycje.map(p => { const m = !p.sku && ST.mapPoz[kluczMapy(p.nazwa_zam)]; const sku = p.sku || (m && PROD[m.sku] ? m.sku : ''); const pr = PROD[sku];
+    return {sku, nazwa: pr ? pr.nazwa : (p.nazwa || p.nazwa_zam), nazwa_zam: p.nazwa_zam||'', ilosc: p.ilosc||1, jedn: p.sku ? (p.jedn||'op') : (pr && pr.poziom==='sztuka' ? 'szt' : 'op'), uwaga: p.uwaga||'', lot:'', exp:''}; });
+}
+const metaPL = (l, dzien) => ({klucz:l.klucz, dzien, zrodlo:l.zrodlo||'', klient:l.klient||'', nick:l.nick||'', nr:l.nr||'', dostawa:l.dostawa||'', flagi:l.flagi||[], czas:l.czas||''});
+function sesjaPL(l, dzien, utworz){
+  const id = idPL(l); let s = ST.sesje[id];
+  if(!s && utworz) s = ST.sesje[id] = {id, nazwa:l.nazwa, utworzono:teraz(), skany:[], pack:liniePL(l), pl:metaPL(l, dzien)};
+  return s;
+}
+function odswiezSesjePL(){ // nowe dane z Maca: nazwy, pozycje i flagi list; skany zostają
+  const d = ST.pl.dane; if(!d) return;
+  const jest = new Set();
+  d.dni.forEach(dz => dz.listy.forEach(l => { jest.add(idPL(l)); const s = ST.sesje[idPL(l)]; if(!s) return;
+    const stare = s.pack || []; s.nazwa = l.nazwa; s.pl = metaPL(l, dz.dzien);
+    s.pack = liniePL(l).map((x, i) => { const o = stare[i]; if(!x.sku && o && o.sku && o.nazwa_zam===x.nazwa_zam){ x.sku = o.sku; x.nazwa = o.nazwa; x.jedn = o.jedn; } if(o && o.ilosc && o.recznaIlosc && o.nazwa_zam===x.nazwa_zam) x.ilosc = o.ilosc; return x; }); }));
+  const dni = new Set(d.dni.map(x => x.dzien));
+  Object.values(ST.sesje).forEach(s => { if(s.pl) s.pl.brak = dni.has(s.pl.dzien) && !jest.has(s.id); });
+}
+function stanSesji(s){
+  const lin = (s.pack||[]).map(l => ({l, ile: licz(l, s)}));
+  const nier = lin.filter(x => !x.l.sku).length;
+  const zaDuzo = lin.filter(x => x.l.sku && x.ile > x.l.ilosc);
+  const poza = s.skany.filter(r => !s.pack.some(l => pasuje(l, r)));
+  const suma = lin.reduce((a,x) => a + x.l.ilosc, 0), jest = lin.reduce((a,x) => a + Math.min(x.ile, x.l.ilosc), 0);
+  const komplet = lin.length > 0 && !nier && !zaDuzo.length && !poza.length && lin.every(x => x.ile===x.l.ilosc);
+  return {lin, nier, zaDuzo, poza, suma, jest, pct: suma ? Math.round(100*jest/suma) : 0, komplet, ruszona: s.skany.length > 0};
+}
+const sesjaLubWzor = (l, dzien) => ST.sesje[idPL(l)] || {id:idPL(l), nazwa:l.nazwa, skany:[], pack:liniePL(l), pl:metaPL(l, dzien)};
+const blokadaPL = s => (s && s.pl && (s.pl.flagi||[]).find(f => /ANULOWANE|WSTRZYMANE/i.test(f))) || '';
+const nadanePL = s => !!(s && s.pl && (s.pl.flagi||[]).some(f => /nadane/i.test(f)));
+function pillPL(st, s){
+  const bl = blokadaPL(s); if(bl) return '<span class="pill bad">'+(/ANUL/i.test(bl) ? 'anulowane' : 'wstrzymane')+'</span>';
+  if(st.zaDuzo.length || st.poza.length) return '<span class="pill bad">za dużo / poza listą</span>';
+  if(st.komplet) return '<span class="pill ok">komplet ✓</span>';
+  if(nadanePL(s)) return '<span class="pill neutral">już nadane</span>';
+  if(st.nier) return '<span class="pill warn">'+st.nier+' bez SKU</span>';
+  return st.ruszona ? '<span class="pill warn">w toku</span>' : '';
+}
+function statusListy(s, st){ const bl = blokadaPL(s); if(bl) return /ANUL/i.test(bl) ? 'anulowane' : 'wstrzymane'; if(st.zaDuzo.length || st.poza.length) return 'za_duzo'; if(st.komplet) return 'komplet'; return st.ruszona ? 'w_toku' : 'nie_rozpoczeta'; }
+function rysujListyPL(el, dz, poWyborze){
+  if(!dz){ el.innerHTML = ''; return; }
+  el.innerHTML = dz.listy.map((l, i) => { const s = sesjaLubWzor(l, dz.dzien); const st = stanSesji(s);
+    const kl = (ST.aktualna===idPL(l) ? ' akt' : '') + (blokadaPL(s) || (nadanePL(s) && !st.ruszona) ? ' wyl' : '');
+    const mieszane = s.pack.some(x => x.jedn==='szt') && s.pack.some(x => x.jedn!=='szt');
+    return `<button class="pl${kl}" data-i="${i}"><div style="min-width:0"><div class="n">${esc(l.nazwa)} ${pillPL(st, s)}</div><div class="m">${esc([l.zrodlo, l.klient + (l.nick ? ' ('+l.nick+')' : '')].filter(Boolean).join(' · '))} · ${s.pack.length} poz.</div></div><div class="c">${st.jest}/${st.suma}<div class="small muted" style="font-size:12px;font-weight:600">${mieszane ? 'op./szt.' : s.pack.every(x => x.jedn==='szt') ? 'szt.' : 'op.'}</div></div><div class="postep"><i class="${st.zaDuzo.length||st.poza.length ? 'bad' : st.komplet ? '' : 'warn'}" style="width:${st.pct}%"></i></div></button>`; }).join('') || '<div class="muted">Brak list tego dnia.</div>';
+  el.querySelectorAll('button.pl').forEach(b => b.onclick = () => { aktywujPL(dz.listy[+b.dataset.i], dz.dzien); if(poWyborze) poWyborze(); });
+}
+function renderPL(){
+  const d = ST.pl.dane;
+  $('plKluczBox').hidden = !!ST.pl.klucz && !plPokazKlucz;
+  const czas = ST.pl.pobranoMs ? new Date(ST.pl.pobranoMs).toTimeString().slice(0,5) : '';
+  $('plStatus').innerHTML = (d ? 'Dane z Maca: '+esc(String(d.wygenerowano||'?').slice(0,16))+(czas ? ' · pobrano '+czas : '') : ST.pl.klucz ? 'Dotknij „Wczytaj pack listy”.' : 'Najpierw wklej klucz, potem „Wczytaj pack listy”.') + (ST.pl.blad ? '<div class="uwaga">Ostatni błąd: '+esc(ST.pl.blad)+'</div>' : '');
+  $('btnPlCsv').disabled = !dzienPL();
+  const dni = d ? d.dni.slice().sort((a,b) => a.dzien.localeCompare(b.dzien)) : [];
+  $('plDni').innerHTML = dni.map(x => `<button aria-pressed="${x.dzien===ST.pl.dzien}" data-d="${x.dzien}">${etykietaDnia(x.dzien)}${x.dzien===dzisISO() ? ' (dziś)' : ''} <span class="k">${x.listy.length}</span></button>`).join('');
+  $('plDni').querySelectorAll('button').forEach(b => b.onclick = () => { ST.pl.dzien = b.dataset.d; save(); render(); });
+  const akt = $('plDni').querySelector('[aria-pressed="true"]'); if(akt && akt.scrollIntoView && !renderPL.przewiniete){ renderPL.przewiniete = true; akt.scrollIntoView({inline:'center', block:'nearest'}); }
+  rysujListyPL($('plListy'), dzienPL(), () => pokaz('skan'));
+}
+function aktywujPL(l, dzien){ const s = sesjaPL(l, dzien, true); ST.aktualna = s.id; ST.pl.dzien = dzien; pending = null; zamknijModal(); save(); toast('Lista: '+s.nazwa); render(); }
+function nastepnaPL(){ // kolejna niekompletna lista tego samego dnia (po kolei, z zawinięciem)
+  const s = S(); if(!s.pl || !ST.pl.dane) return null;
+  const dz = ST.pl.dane.dni.find(x => x.dzien===s.pl.dzien); if(!dz) return null;
+  const i0 = dz.listy.findIndex(l => idPL(l)===s.id); const n = dz.listy.length;
+  for(const tylkoNienadane of [true, false]) for(let k = 1; k < n; k++){ const l = dz.listy[(i0 + k) % n]; const o = sesjaLubWzor(l, dz.dzien);
+    if(blokadaPL(o) || stanSesji(o).komplet || (tylkoNienadane && nadanePL(o))) continue; return {l, dzien: dz.dzien}; }
+  return null;
+}
+function pokazKomplet(){
+  const s = S(); const st = stanSesji(s); if(!st.komplet) return;
+  const nx = nastepnaPL();
+  zamknijModal();
+  const box = document.createElement('div'); box.className='modal'; box.id='modal';
+  box.innerHTML = `<div class="box"><div class="komplet">✓ ${esc(s.nazwa)} – komplet</div>
+    <div class="muted small" style="text-align:center">${s.pack.length} poz. · ${st.jest} ${s.pack.every(l=>l.jedn==='szt')?'szt.':'op.'}${s.pl && s.pl.klient ? ' · '+esc(s.pl.klient) : ''}</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">${nx ? `<button class="btn primary" id="kmDalej" style="min-height:64px;font-size:19px">Następna lista: ${esc(nx.l.nazwa)} ›</button>` : (s.pl ? '<div class="komplet" style="font-size:18px">Wszystkie listy dnia gotowe</div>' : '')}<button class="btn" id="kmZostan">Zostań na tej liście</button></div></div>`;
+  document.body.appendChild(box);
+  const d = box.querySelector('#kmDalej'); if(d) d.onclick = () => aktywujPL(nx.l, nx.dzien);
+  box.querySelector('#kmZostan').onclick = zamknijModal;
+}
+function otworzListy(){
+  zamknijModal();
+  const dz = dzienPL();
+  const box = document.createElement('div'); box.className='modal'; box.id='modal';
+  box.innerHTML = `<div class="box"><h3>Pack listy ${dz ? esc(etykietaDnia(dz.dzien)) : ''}</h3><div class="lista" id="olLista"></div>
+    <div class="row" style="margin-top:8px"><button class="btn" id="olPack">Zakładka Pack lista</button><button class="btn" id="olSesje">Inne sesje</button><button class="btn" id="olNie">Zamknij</button></div></div>`;
+  document.body.appendChild(box);
+  rysujListyPL(box.querySelector('#olLista'), dz);
+  box.querySelector('#olPack').onclick = () => { zamknijModal(); pokaz('pack'); };
+  box.querySelector('#olSesje').onclick = () => { zamknijModal(); pokaz('wiecej'); };
+  box.querySelector('#olNie').onclick = zamknijModal;
+  box.addEventListener('click', e => { if(e.target===box) zamknijModal(); });
+}
+// CSV: jedna lista = jeden plik + plik zbiorczy; wiersz = pozycja listy × (LOT, EXP) wydanych opakowań
+const H_PL = ['dzien','lista','zrodlo','nr_zamowienia','klient','status_listy','sku','nazwa','nazwa_z_zamowienia','zamowiono','jednostka','wydano_lacznie','lot','exp','wydano_z_lot','ilosc_szt_z_lot','status_pozycji'];
+function wierszePL(s, dzien){
+  const st = stanSesji(s), m = s.pl || {}, out = [];
+  const baza = [dzien, s.nazwa, m.zrodlo||'', m.nr||'', m.klient||'', statusListy(s, st)];
+  st.lin.forEach(({l, ile}) => {
+    const sp = !l.sku ? 'nierozpoznana' : ile > l.ilosc ? 'za_duzo' : ile===l.ilosc ? 'ok' : 'brakuje';
+    const gr = grupuj(s.skany.filter(r => pasuje(l, r))), j = l.jedn==='szt' ? 'szt' : 'op';
+    if(!gr.length) out.push(baza.concat([l.sku, l.nazwa, l.nazwa_zam||'', l.ilosc, j, ile, '', '', 0, 0, sp]));
+    gr.forEach(g => out.push(baza.concat([l.sku, l.nazwa, l.nazwa_zam||'', l.ilosc, j, ile, g.lot, g.exp, l.jedn==='szt' ? sztuk(g) : g.ilosc, sztuk(g), sp])));
+  });
+  grupuj(st.poza).forEach(g => out.push(baza.concat([g.sku, g.nazwa, '', '', g.poziom==='sztuka' ? 'szt' : 'op', '', g.lot, g.exp, g.ilosc, sztuk(g), 'poza_lista'])));
+  return out;
+}
+const plikCsv = (nazwa, wiersze) => new File([BOM + H_PL.join(';') + '\n' + wiersze.map(w => w.map(csvCell).join(';')).join('\n') + '\n'], nazwa, {type:'text/csv'});
+async function eksportDniaPL(){
+  const dz = dzienPL(); if(!dz) return toast('Najpierw wczytaj pack listy');
+  const pliki = [], wsz = [], uzyte = {};
+  dz.listy.forEach(l => { const w = wierszePL(sesjaLubWzor(l, dz.dzien), dz.dzien); wsz.push(...w);
+    let n = 'pack_'+dz.dzien+'_'+slug(l.nazwa); if(uzyte[n]) n += '_'+(++uzyte[n]); else uzyte[n] = 1; pliki.push(plikCsv(n+'.csv', w)); });
+  pliki.unshift(plikCsv('pack_'+dz.dzien+'_WSZYSTKIE.csv', wsz));
+  await zapiszPliki(pliki);
+}
+async function zapiszPliki(pliki){
+  try{ if(navigator.canShare && navigator.canShare({files:pliki})){ await navigator.share({files:pliki, title:'Pack listy – CSV'}); return; } }catch(e){ if(e && e.name==='AbortError') return; }
+  for(const f of pliki){
+    if(window.__dl){ try{ await window.__dl.save({filename:f.name, data:f}); continue; }catch(e){ if(e && (e.code==='dismissed'||e.code==='cancelled')) return; } }
+    try{ const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 3000); }catch(e){}
+    await new Promise(ok => setTimeout(ok, 400));
+  }
+  toast(pliki.length+' plików CSV');
+}
+function csvMapa(){ return BOM + 'klucz;sku;uwagi\n' + Object.values(ST.mapPoz).map(m => [m.nazwa_zam, m.sku, 'przypisane na telefonie '+String(m.kiedy||'').slice(0,10)+(PROD[m.sku] ? ' – '+PROD[m.sku].nazwa : '')].map(csvCell).join(';')).join('\n') + '\n'; }
+
 /* ======================= EKSPORT ======================= */
 const BOM = '﻿';
 const csvCell = v => { v = String(v==null?'':v); return /[;"\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
@@ -784,7 +1082,7 @@ function csvPodsum(s){
     return [s.nazwa, g.sku, g.nazwa, g.lot, g.exp, g.ilosc, g.szt_w_opak, sztuk(g), l?l.ilosc:'', st].map(csvCell).join(';'); }).join('\n') + '\n';
 }
 function csvAliasy(){ return BOM + 'kod;sku;poziom;nazwa;kiedy\n' + Object.entries(ST.aliasy).map(([k,a]) => [a.kod||k, a.sku, a.poziom, PROD[a.sku]?PROD[a.sku].nazwa:'', a.kiedy||''].map(csvCell).join(';')).join('\n') + '\n'; }
-const slug = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,40) || 'sesja';
+const slug = s => String(s).replace(/ł/g,'l').replace(/Ł/g,'L').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,40) || 'sesja';
 async function zapiszPlik(nazwa, tresc, typ){
   typ = typ || 'text/csv';
   const blob = new Blob([tresc], {type: typ+';charset=utf-8'});
@@ -948,10 +1246,11 @@ const DZW = {
   zapis: [[880,0,.10],[1175,.10,.10],[1568,.20,.22]],                      // trzy rosnące tony – pozycja ZAPISANA
   krok:  [[600,0,.07,'triangle',.25]],                                       // jedno krótkie „tuk” – przyjęte, skanuj dalej
   uwaga: [[700,0,.12,'square',.10],[700,.20,.12,'square',.10]],            // dwa „pip-pip” – podaj dane na ekranie
-  blad:  [[260,0,.32,'sawtooth',.16],[200,.40,.35,'sawtooth',.16]]          // niski brzęczyk – błąd / za dużo
+  blad:  [[260,0,.32,'sawtooth',.16],[200,.40,.35,'sawtooth',.16]],         // niski brzęczyk – błąd / za dużo
+  komplet: [[784,0,.13,'triangle',.3],[988,.13,.13,'triangle',.3],[1175,.26,.13,'triangle',.3],[1568,.40,.55,'triangle',.34],[1175,.40,.55,'sine',.14],[784,.40,.55,'sine',.1]]   // fanfara – LISTA KOMPLETNA
 };
-const WIBR = {zapis:70, krok:20, uwaga:[50,60,50], blad:[120,60,120]};
-function flash(cls){ const f = $('flash'); f.className = 'flash '+cls; setTimeout(()=>{ f.className='flash'; }, 260); }
+const WIBR = {zapis:70, krok:20, uwaga:[50,60,50], blad:[120,60,120], komplet:[90,50,90,50,260]};
+function flash(cls, ms){ const f = $('flash'); f.className = 'flash '+cls; setTimeout(()=>{ f.className='flash'; }, ms||260); }
 let sygT = null;
 function sygnal(typ, msg){ // sygnały pośrednie czekają chwilę: produkt i LOT z tej samej klatki dają jeden dźwięk, nie dwa
   clearTimeout(sygT);
@@ -959,7 +1258,8 @@ function sygnal(typ, msg){ // sygnały pośrednie czekają chwilę: produkt i LO
   graj(typ, msg);
 }
 function graj(typ, msg){
-  flash(typ==='zapis' ? 'ok' : typ==='blad' ? 'bad' : 'krok');
+  clearTimeout(sygT);
+  if(typ==='komplet') flash('komplet', 900); else flash(typ==='zapis' ? 'ok' : typ==='blad' ? 'bad' : 'krok');
   if(ST.ust.dzwiek && audio()){ try{ DZW[typ].forEach(x => ton(x[0], x[1], x[2], x[3], x[4])); }catch(e){} }
   try{ if(navigator.vibrate && navigator.userActivation && navigator.userActivation.hasBeenActive) navigator.vibrate(WIBR[typ]); }catch(e){}
   if(msg) toast(msg, typ==='blad' ? 3500 : 1800);
@@ -980,13 +1280,19 @@ function bind(){
   $('btnKlatka').onclick = zapiszKlatke;
   $('btnOdswiez').onclick = () => odswiezDo(String(Date.now()));
   $('btnLatarka').onclick = async () => { try{ const on = !($('btnLatarka').dataset.on==='1'); await track.applyConstraints({advanced:[{torch:on}]}); $('btnLatarka').dataset.on = on?'1':'0'; }catch(e){ toast('Latarka niedostępna'); } };
-  const reczny = () => { const v = $('reczny').value.trim(); if(!v) return; $('reczny').value=''; const p = parseGS1(v); if(p.gtin || p.kod_artykulu || krok()!=='PRODUKT') onKod(v, 'recznie'); else { const r = szukaj(v); if(r.length===1) ustawPending(r[0].sku, r[0].poziom, {raw:v}, 'recznie'); else otworzPicker({tytul:'Wybierz produkt', filtr:v, zrodlo:'recznie', parsed:{raw:v}}); } };
+  const reczny = () => { const v = $('reczny').value.trim(); if(!v) return; $('reczny').value=''; if(/^SPKLUCZ:/.test(v)){ ustawKlucz(v); return; } const p = parseGS1(v); if(p.gtin || p.kod_artykulu || krok()!=='PRODUKT') onKod(v, 'recznie'); else { const r = szukaj(v); if(r.length===1) ustawPending(r[0].sku, r[0].poziom, {raw:v}, 'recznie'); else otworzPicker({tytul:'Wybierz produkt', filtr:v, zrodlo:'recznie', parsed:{raw:v}}); } };
   $('btnReczny').onclick = reczny; $('reczny').addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); reczny(); } });
   $('btnZListy').onclick = () => otworzPicker({tytul:'Wybierz produkt', zrodlo:'recznie', parsed:{raw:''}});
   $('btnCofnij').onclick = () => { const s=S(); if(pending){ pending=null; render(); return; } const r = s.skany.pop(); if(r){ save(); toast('Cofnięto: '+r.nazwa); } render(); };
-  $('btnSesja').onclick = () => pokaz('wiecej');
-  $('btnPackWczytaj').onclick = () => { const {out, bledy} = parsujPack($('packText').value); if(!out.length && !bledy.length) return toast('Wklej linie pack listy'); const s = S(); s.pack = s.pack.concat(out); save(); $('packText').value = bledy.join('\n'); toast(out.length+' pozycji wczytano'+(bledy.length?', '+bledy.length+' nierozpoznanych (zostały w polu)':'')); render(); };
-  $('packPlik').onchange = e => { const f = e.target.files[0]; if(!f) return; f.text().then(t => { $('packText').value = t; $('btnPackWczytaj').click(); }); e.target.value=''; };
+  $('btnSesja').onclick = () => ST.pl.dane ? otworzListy() : pokaz('wiecej');
+  $('btnPackWczytaj').onclick = () => pobierzPL(false);
+  $('btnPlCsv').onclick = eksportDniaPL;
+  $('btnPlWklej').onclick = async () => { try{ const t = await navigator.clipboard.readText(); if(kluczZTekstu(t)){ plPokazKlucz = false; ustawKlucz(t); } else { $('plKlucz').value = ''; toast('W schowku nie ma klucza pack list'); } }catch(e){ toast('Brak dostępu do schowka – przytrzymaj pole i wybierz „Wklej”'); } };
+  $('btnPlKluczOk').onclick = () => { if(ustawKlucz($('plKlucz').value)){ $('plKlucz').value = ''; plPokazKlucz = false; render(); } };
+  $('btnPlZmienKlucz').onclick = () => { plPokazKlucz = !plPokazKlucz; render(); };
+  $('btnMapaCsv').onclick = () => zapiszPlik('mapowanie_pozycji.csv', csvMapa());
+  $('btnPackZPola').onclick = () => { const {out, bledy} = parsujPack($('packText').value); if(!out.length && !bledy.length) return toast('Wklej linie pack listy'); const s = S(); s.pack = s.pack.concat(out); save(); $('packText').value = bledy.join('\n'); toast(out.length+' pozycji wczytano'+(bledy.length?', '+bledy.length+' nierozpoznanych (zostały w polu)':'')); render(); };
+  $('packPlik').onchange = e => { const f = e.target.files[0]; if(!f) return; f.text().then(t => { $('packText').value = t; $('btnPackZPola').click(); }); e.target.value=''; };
   $('btnPackDodaj').onclick = () => otworzPicker({tytul:'Dodaj pozycję pack listy', ilosc:true, parsed:{raw:''}, onWybor:(p, n) => { const s=S(); const l = s.pack.find(l=>l.sku===p.sku && !l.lot && !l.exp); if(l) l.ilosc += n; else s.pack.push({sku:p.sku, nazwa:p.nazwa, lot:'', exp:'', ilosc:n}); save(); render(); }});
   $('btnPackUsun').onclick = () => confirm2('Usunąć całą pack listę tej sesji?', () => { S().pack = []; save(); render(); });
   $('btnCsvSkany').onclick = () => { const s=S(); zapiszPlik('skany_'+slug(s.nazwa)+'.csv', csvSkany(s)); };
@@ -1007,8 +1313,11 @@ function bind(){
   document.addEventListener('visibilitychange', () => { if(document.hidden && camOn) stopCam(); });
   document.addEventListener('keydown', e => { if(e.key==='Escape') zamknijModal(); });
 }
-window.SKANER = {parseGS1, parseDate, kandydaci, onKod, zKlatki, dekoduj, dekodujObszar, dwaPrzebiegi, obszarWidoczny, jestProduktem, parsujPack, csvSkany, csvPodsum, stan:()=>ST, pending:()=>pending, krok, blok};
+window.SKANER = {parseGS1, parseDate, kandydaci, onKod, zKlatki, dekoduj, dekodujObszar, dwaPrzebiegi, obszarWidoczny, jestProduktem, parsujPack, csvSkany, csvPodsum, stan:()=>ST, pending:()=>pending, krok, blok,
+  odszyfrujPL, pobierzPL, stanSesji, liniePL, wierszePL, eksportDniaPL, aktywujPL, nastepnaPL, ustawKlucz, kluczMapy, zatwierdz, ustawPending};
 init(); initDekoder(); bind(); render(); ustawWidze('');
+if(/^#klucz=/.test(location.hash)){ const k = decodeURIComponent(location.hash.slice(7)); try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){} ustawKlucz('SPKLUCZ:'+k.replace(/^SPKLUCZ:/,'')); }
+else if(ST.pl.klucz && Date.now() - (ST.pl.pobranoMs||0) > 10*60*1000) pobierzPL(true);
 $('wer').textContent = 'v' + WERSJA;
 async function odswiezDo(w){ try{ const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); }catch(e){} location.replace(location.pathname + '?v=' + encodeURIComponent(w)); }
 async function sprawdzWersje(){ // strona z pamięci podręcznej bywa starsza niż opublikowana – porównaj z wersja.txt
