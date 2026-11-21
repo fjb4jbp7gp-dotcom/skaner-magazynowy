@@ -229,6 +229,11 @@ button.pl.wyl{opacity:.55}
       <button class="btn primary" id="btnPackWczytaj">Wczytaj pack listy</button>
       <button class="btn" id="btnPlCsv">CSV: wszystkie listy dnia</button>
     </div>
+    <div class="row" id="plUsuwanie" style="margin-top:8px" hidden>
+      <button class="btn danger small" id="btnPlUsunStare">Usuń stare listy</button>
+      <button class="btn danger small" id="btnPlUsunDzien">Usuń listy dnia</button>
+      <button class="btn small" id="btnPlPrzywroc" hidden>Przywróć usunięte</button>
+    </div>
     <div class="small muted" id="plStatus" style="margin-top:6px"></div>
     <div class="dni" id="plDni" style="margin-top:8px"></div>
     <div id="plListy" style="margin-top:4px"></div>
@@ -290,11 +295,11 @@ button.pl.wyl{opacity:.55}
 </nav>
 </div>
 
-<script src="products.js?v=7"></script>
+<script src="products.js?v=8"></script>
 <script src="zxing-wasm-reader.js"></script>
 <script>
 /* ======================= DANE ======================= */
-const WERSJA = '7';   // ta sama wartość co w pliku wersja.txt
+const WERSJA = '8';   // ta sama wartość co w pliku wersja.txt
 const DB = window.PRODUKTY || {produkty:[], indeks_kodow:{}};
 const PROD = {}; DB.produkty.forEach(p => PROD[p.sku] = p);
 const KEY = 'skaner-sp.v1';
@@ -310,7 +315,8 @@ function init(){
   ST.ust = Object.assign({auto:false, dzwiek:true, wymagaj:false, kartony:false, pytajKarton:false}, ST.ust||{});
   ST.lotExp = ST.lotExp || {};
   ST.kartonLot = ST.kartonLot || {};   // REF|LOT → liczba opakowań w kartonie (bywa różna między LOT-ami)
-  ST.pl = Object.assign({klucz:'', dane:null, dzien:'', pobranoMs:0, blad:''}, ST.pl||{});   // pack listy dnia z repo (zaszyfrowane)
+  ST.pl = Object.assign({klucz:'', dane:null, dzien:'', pobranoMs:0, blad:''}, ST.pl||{});
+  ST.pl.ukryte = ST.pl.ukryte || {};   // id listy → dzień: listy usunięte z narzędzia (plik z Maca nadal je zawiera)   // pack listy dnia z repo (zaszyfrowane)
   ST.mapPoz = ST.mapPoz || {};         // nazwa pozycji z zamówienia → SKU (przypisane na telefonie)
   ST.kartonSku = ST.kartonSku || {};   // SKU → ostatnio podana liczba opakowań w kartonie (podpowiedź dla nowego LOT-u)   // pamięć: REF|LOT → EXP (data z nadruku podawana raz na LOT)
   if(!ST.aktualna || !ST.sesje[ST.aktualna]) nowaSesja(domyslnaNazwa());
@@ -855,6 +861,7 @@ function renderPack(){
   renderPL();
   const s = S(); const el = $('packTabela');
   $('packTytul').textContent = s.pl ? 'Aktywna lista: '+s.nazwa : 'Pack lista sesji: '+s.nazwa;
+  $('btnPackUsun').textContent = s.pl ? 'Usuń tę listę z narzędzia' : 'Usuń pack listę';
   $('packMeta').innerHTML = s.pl ? esc([s.pl.zrodlo, s.pl.klient + (s.pl.nick ? ' ('+s.pl.nick+')' : ''), s.pl.nr, s.pl.dostawa].filter(Boolean).join(' · ')) + ((s.pl.flagi||[]).length ? '<div class="uwaga">⚠ '+esc(s.pl.flagi.join('; '))+'</div>' : '') + (s.pl.brak ? '<div class="uwaga">Tej listy nie ma już w ostatnim pliku pack list – sprawdź, czy zamówienie nie zostało anulowane.</div>' : '') : '';
   if(!s.pack.length){ el.innerHTML = '<div class="muted">Brak pozycji. Wybierz pack listę powyżej albo wklej ją ręcznie (sekcja niżej).</div>'; return; }
   el.innerHTML = s.pack.map((l,i) => { const ile = licz(l); const st = !l.sku?'warn':ile>l.ilosc?'bad':ile===l.ilosc?'ok':ile?'warn':''; const pct = Math.min(100, Math.round(100*ile/l.ilosc));
@@ -943,17 +950,21 @@ async function pobierzPL(cicho){
     if(!env) throw new Error(blad);
     const d = await odszyfrujPL(env);
     ST.pl.dane = d; ST.pl.pobranoMs = Date.now(); ST.pl.blad = '';
-    if(!cicho || !ST.pl.dzien || !d.dni.some(x => x.dzien===ST.pl.dzien)) ST.pl.dzien = domyslnyDzien(d);
-    odswiezSesjePL(); save();
+    odswiezSesjePL();
+    if(!cicho || !ST.pl.dzien || !dniPL().some(x => x.dzien===ST.pl.dzien)) ST.pl.dzien = domyslnyDzien(d);
+    save();
     const dz = dzienPL();
     if(!cicho) toast('Pack listy z '+String(d.wygenerowano||'?').slice(0,16)+' · '+(dz ? etykietaDnia(dz.dzien)+': '+dz.listy.length+' list' : 'brak list'), 2500);
   }catch(e){ ST.pl.blad = e.message || String(e); save(); if(!cicho) badFlash('Nie pobrano pack list: '+ST.pl.blad); }
   plTrwa = false; render();
 }
 const dzisISO = () => { const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
-function domyslnyDzien(d){ const dz = d.dni.map(x => x.dzien).sort(); return dz.find(x => x >= dzisISO()) || dz[dz.length-1] || ''; }
+function domyslnyDzien(d){ const dz = dniPL().map(x => x.dzien).sort(); return dz.find(x => x >= dzisISO()) || dz[dz.length-1] || ''; }
 function etykietaDnia(iso){ const [y,m,d] = String(iso).split('-').map(Number); if(!y) return iso; return DNI_TYG[new Date(y, m-1, d).getDay()]+' '+String(d).padStart(2,'0')+'.'+String(m).padStart(2,'0'); }
-const dzienPL = () => ST.pl.dane && ST.pl.dane.dni.find(x => x.dzien===ST.pl.dzien);
+const widocznaPL = l => !ST.pl.ukryte[idPL(l)];
+function dniPL(){ const d = ST.pl.dane; if(!d) return [];   // dni i listy bez usuniętych z narzędzia
+  return d.dni.map(x => ({dzien:x.dzien, listy:x.listy.filter(widocznaPL)})).filter(x => x.listy.length); }
+const dzienPL = () => dniPL().find(x => x.dzien===ST.pl.dzien);
 const idPL = l => 'pl|'+l.klucz;
 function liniePL(lista){
   return lista.pozycje.map(p => { const m = !p.sku && ST.mapPoz[kluczMapy(p.nazwa_zam)]; const sku = p.sku || (m && PROD[m.sku] ? m.sku : ''); const pr = PROD[sku];
@@ -971,6 +982,7 @@ function odswiezSesjePL(){ // nowe dane z Maca: nazwy, pozycje i flagi list; ska
   d.dni.forEach(dz => dz.listy.forEach(l => { jest.add(idPL(l)); const s = ST.sesje[idPL(l)]; if(!s) return;
     const stare = s.pack || []; s.nazwa = l.nazwa; s.pl = metaPL(l, dz.dzien);
     s.pack = liniePL(l).map((x, i) => { const o = stare[i]; if(!x.sku && o && o.sku && o.nazwa_zam===x.nazwa_zam){ x.sku = o.sku; x.nazwa = o.nazwa; x.jedn = o.jedn; } if(o && o.ilosc && o.recznaIlosc && o.nazwa_zam===x.nazwa_zam) x.ilosc = o.ilosc; return x; }); }));
+  Object.keys(ST.pl.ukryte).forEach(id => { if(!jest.has(id)) delete ST.pl.ukryte[id]; });
   const dni = new Set(d.dni.map(x => x.dzien));
   Object.values(ST.sesje).forEach(s => { if(s.pl) s.pl.brak = dni.has(s.pl.dzien) && !jest.has(s.id); });
 }
@@ -1009,16 +1021,41 @@ function renderPL(){
   const czas = ST.pl.pobranoMs ? new Date(ST.pl.pobranoMs).toTimeString().slice(0,5) : '';
   $('plStatus').innerHTML = (d ? 'Dane z Maca: '+esc(String(d.wygenerowano||'?').slice(0,16))+(czas ? ' · pobrano '+czas : '') : ST.pl.klucz ? 'Dotknij „Wczytaj pack listy”.' : 'Najpierw wklej klucz, potem „Wczytaj pack listy”.') + (ST.pl.blad ? '<div class="uwaga">Ostatni błąd: '+esc(ST.pl.blad)+'</div>' : '');
   $('btnPlCsv').disabled = !dzienPL();
-  const dni = d ? d.dni.slice().sort((a,b) => a.dzien.localeCompare(b.dzien)) : [];
+  const nStare = stareListyPL().length, nUkr = Object.keys(ST.pl.ukryte).length, dzA = dzienPL();
+  $('plUsuwanie').hidden = !d && !nStare;
+  $('btnPlUsunStare').hidden = !nStare; $('btnPlUsunStare').textContent = 'Usuń stare listy ('+nStare+')';
+  $('btnPlUsunDzien').hidden = !dzA; if(dzA) $('btnPlUsunDzien').textContent = 'Usuń listy dnia '+etykietaDnia(dzA.dzien)+' ('+dzA.listy.length+')';
+  $('btnPlPrzywroc').hidden = !nUkr; $('btnPlPrzywroc').textContent = 'Przywróć usunięte ('+nUkr+')';
+  const dni = dniPL().sort((a,b) => a.dzien.localeCompare(b.dzien));
   $('plDni').innerHTML = dni.map(x => `<button aria-pressed="${x.dzien===ST.pl.dzien}" data-d="${x.dzien}">${etykietaDnia(x.dzien)}${x.dzien===dzisISO() ? ' (dziś)' : ''} <span class="k">${x.listy.length}</span></button>`).join('');
   $('plDni').querySelectorAll('button').forEach(b => b.onclick = () => { ST.pl.dzien = b.dataset.d; save(); render(); });
   const akt = $('plDni').querySelector('[aria-pressed="true"]'); if(akt && akt.scrollIntoView && !renderPL.przewiniete){ renderPL.przewiniete = true; akt.scrollIntoView({inline:'center', block:'nearest'}); }
   rysujListyPL($('plListy'), dzienPL(), () => pokaz('skan'));
+  if(d && !dniPL().length) $('plListy').innerHTML = '<div class="muted">Brak list do pokazania – wszystkie usunięte. Nowe zamówienia pojawią się po kolejnym pobraniu.</div>';
+}
+// Usuwanie list z narzędzia: sesja (ze skanami) znika, a lista jest ukryta, żeby nie wróciła przy następnym pobraniu.
+function stareListyPL(){ const dzis = dzisISO(), ids = new Set();
+  dniPL().forEach(x => { if(x.dzien < dzis) x.listy.forEach(l => ids.add(idPL(l))); });
+  Object.values(ST.sesje).forEach(s => { if(s.pl && s.pl.dzien && s.pl.dzien < dzis) ids.add(s.id); });
+  return [...ids]; }
+function listyDniaPL(dzien){ const x = dniPL().find(y => y.dzien===dzien); const ids = new Set(x ? x.listy.map(idPL) : []);
+  Object.values(ST.sesje).forEach(s => { if(s.pl && s.pl.dzien===dzien) ids.add(s.id); }); return [...ids]; }
+function opisUsuwania(ids){ const ze = ids.filter(id => ST.sesje[id] && ST.sesje[id].skany.length).length;
+  return ids.length+(ids.length===1 ? ' lista' : ids.length<5 ? ' listy' : ' list')+(ze ? ' – w tym '+ze+' ze skanami (najpierw zrób CSV, skany przepadną)' : ''); }
+function usunListyPL(ids){
+  const dzien = {}; (ST.pl.dane ? ST.pl.dane.dni : []).forEach(x => x.listy.forEach(l => dzien[idPL(l)] = x.dzien));
+  ids.forEach(id => { if(dzien[id]) ST.pl.ukryte[id] = dzien[id]; delete ST.sesje[id]; });
+  if(!ST.sesje[ST.aktualna]){ pending = null;
+    const dz = dzienPL() || dniPL()[0]; const l = dz && dz.listy.find(x => ST.sesje[idPL(x)]);
+    const zost = Object.values(ST.sesje).sort((a,b) => b.utworzono.localeCompare(a.utworzono));
+    if(l) ST.aktualna = idPL(l); else if(zost.length) ST.aktualna = zost[0].id; else nowaSesja(domyslnaNazwa()); }
+  if(!dzienPL()) ST.pl.dzien = ST.pl.dane ? domyslnyDzien(ST.pl.dane) : '';
+  save(); toast('Usunięto: '+ids.length+(ids.length===1 ? ' lista' : ids.length<5 ? ' listy' : ' list')); render();
 }
 function aktywujPL(l, dzien){ const s = sesjaPL(l, dzien, true); ST.aktualna = s.id; ST.pl.dzien = dzien; pending = null; zamknijModal(); save(); toast('Lista: '+s.nazwa); render(); }
 function nastepnaPL(){ // kolejna niekompletna lista tego samego dnia (po kolei, z zawinięciem)
   const s = S(); if(!s.pl || !ST.pl.dane) return null;
-  const dz = ST.pl.dane.dni.find(x => x.dzien===s.pl.dzien); if(!dz) return null;
+  const dz = dniPL().find(x => x.dzien===s.pl.dzien); if(!dz) return null;
   const i0 = dz.listy.findIndex(l => idPL(l)===s.id); const n = dz.listy.length;
   for(const tylkoNienadane of [true, false]) for(let k = 1; k < n; k++){ const l = dz.listy[(i0 + k) % n]; const o = sesjaLubWzor(l, dz.dzien);
     if(blokadaPL(o) || stanSesji(o).komplet || (tylkoNienadane && nadanePL(o))) continue; return {l, dzien: dz.dzien}; }
@@ -1308,14 +1345,18 @@ function bind(){
   $('btnPackZPola').onclick = () => { const {out, bledy} = parsujPack($('packText').value); if(!out.length && !bledy.length) return toast('Wklej linie pack listy'); const s = S(); s.pack = s.pack.concat(out); save(); $('packText').value = bledy.join('\n'); toast(out.length+' pozycji wczytano'+(bledy.length?', '+bledy.length+' nierozpoznanych (zostały w polu)':'')); render(); };
   $('packPlik').onchange = e => { const f = e.target.files[0]; if(!f) return; f.text().then(t => { $('packText').value = t; $('btnPackZPola').click(); }); e.target.value=''; };
   $('btnPackDodaj').onclick = () => otworzPicker({tytul:'Dodaj pozycję pack listy', ilosc:true, parsed:{raw:''}, onWybor:(p, n) => { const s=S(); const l = s.pack.find(l=>l.sku===p.sku && !l.lot && !l.exp); if(l) l.ilosc += n; else s.pack.push({sku:p.sku, nazwa:p.nazwa, lot:'', exp:'', ilosc:n}); save(); render(); }});
-  $('btnPackUsun').onclick = () => confirm2('Usunąć całą pack listę tej sesji?', () => { S().pack = []; save(); render(); });
+  $('btnPackUsun').onclick = () => { const s = S(); if(s.pl) return confirm2('Usunąć listę „'+s.nazwa+'” z narzędzia?'+(s.skany.length ? ' Ma '+s.skany.length+' skanów – przepadną.' : ''), () => usunListyPL([s.id]));
+    confirm2('Usunąć całą pack listę tej sesji?', () => { s.pack = []; save(); render(); }); };
+  $('btnPlUsunStare').onclick = () => { const ids = stareListyPL(); if(!ids.length) return toast('Brak starych list'); confirm2('Usunąć listy sprzed dziś: '+opisUsuwania(ids)+'?', () => usunListyPL(ids)); };
+  $('btnPlUsunDzien').onclick = () => { const dz = dzienPL(); if(!dz) return; const ids = listyDniaPL(dz.dzien); confirm2('Usunąć wszystkie listy dnia '+etykietaDnia(dz.dzien)+': '+opisUsuwania(ids)+'?', () => usunListyPL(ids)); };
+  $('btnPlPrzywroc').onclick = () => { const n = Object.keys(ST.pl.ukryte).length; confirm2('Przywrócić '+n+' usuniętych list (bez dawnych skanów)?', () => { ST.pl.ukryte = {}; if(!dzienPL() && ST.pl.dane) ST.pl.dzien = domyslnyDzien(ST.pl.dane); save(); render(); toast('Przywrócono listy'); }); };
   $('btnCsvSkany').onclick = () => { const s=S(); zapiszPlik('skany_'+slug(s.nazwa)+'.csv', csvSkany(s)); };
   $('btnCsvPodsum').onclick = () => { const s=S(); zapiszPlik('podsumowanie_'+slug(s.nazwa)+'.csv', csvPodsum(s)); };
   $('btnKopiujCsv').onclick = () => kopiuj(csvSkany(S()));
   $('btnKopiujJson').onclick = () => kopiuj(jsonSesji(S()));
   $('btnNowaSesja').onclick = () => prompt2('Nazwa sesji (np. numer zamówienia)', domyslnaNazwa(), v => { nowaSesja(v.trim()||domyslnaNazwa()); pending=null; render(); toast('Nowa sesja'); });
   $('btnZmienNazwe').onclick = () => prompt2('Nazwa sesji', S().nazwa, v => { if(v.trim()){ S().nazwa = v.trim(); save(); render(); } });
-  $('btnUsunSesje').onclick = () => confirm2('Usunąć sesję „'+S().nazwa+'” z '+S().skany.length+' skanami?', () => { delete ST.sesje[ST.aktualna]; ST.aktualna = Object.keys(ST.sesje)[0] || null; if(!ST.aktualna) nowaSesja(domyslnaNazwa()); pending=null; save(); render(); });
+  $('btnUsunSesje').onclick = () => confirm2('Usunąć sesję „'+S().nazwa+'” z '+S().skany.length+' skanami?', () => { if(S().pl) return usunListyPL([ST.aktualna]); delete ST.sesje[ST.aktualna]; ST.aktualna = Object.keys(ST.sesje)[0] || null; if(!ST.aktualna) nowaSesja(domyslnaNazwa()); pending=null; save(); render(); });
   $('ustAuto').onchange = e => { ST.ust.auto = e.target.checked; save(); };
   $('ustDzwiek').onchange = e => { ST.ust.dzwiek = e.target.checked; save(); };
   $('ustWymagaj').onchange = e => { ST.ust.wymagaj = e.target.checked; save(); };

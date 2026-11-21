@@ -98,6 +98,11 @@ nazwisko + miasto (instytucja bez osoby: nazwa firmy + miasto). Dzień listy = d
 i dni wolne → najbliższy dzień roboczy, jak w `allegro.py`). Plik obejmuje 7 dni wstecz i 7 naprzód; domyślnie
 otwiera się dziś albo najbliższy dzień z listami.
 
+**Usuwanie list (od v8):** „Usuń stare listy” (dni przed dziś), „Usuń listy dnia …” (wybrany dzień) i „Usuń tę listę
+z narzędzia” (aktywna lista, pod pozycjami; to samo „Usuń sesję” w Więcej). Sesja ze skanami znika, a lista jest
+zapamiętana jako usunięta, więc kolejne pobranie jej nie przywraca (plik z Maca nadal ją zawiera). „Przywróć usunięte”
+pokazuje je z powrotem, bez dawnych skanów. Przed usunięciem list ze skanami zrób CSV.
+
 **Szyfrowanie.** Repo jest publiczne, więc dane klientów idą tylko zaszyfrowane: AES-256-CBC + HMAC-SHA256, klucz
 w pęku kluczy Maca (usługa `sp-skaner-packlisty`). Klucz wpisuje się raz na telefonie: `python3 bin/packlisty_skaner.py
 klucz` kopiuje go do schowka (wspólny schowek Mac–iPhone → „Wklej klucz”), a `klucz --qr` pokazuje kod QR na ekranie
